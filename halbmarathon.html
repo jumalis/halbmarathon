@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>🏃‍♀️ Halbmarathon 2027</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#080c14;color:#f1f5f9;font-family:system-ui,-apple-system,sans-serif;min-height:100vh;padding-bottom:80px}
+button{font-family:inherit;cursor:pointer}
+input{font-family:inherit}
+.tab-btn{flex:1;padding:10px 0;background:none;border:none;border-bottom:2px solid transparent;color:#64748b;font-size:12px;font-weight:400;cursor:pointer}
+.tab-btn.active{border-bottom-color:#f97316;color:#f1f5f9;font-weight:700}
+.week-card{margin-bottom:8px;border-radius:12px;border:1px solid #1e2d45;overflow:hidden;background:#141d2e}
+.week-card.current{border-color:#f97316}
+.week-header{width:100%;display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:none;border:none;color:#f1f5f9;cursor:pointer;text-align:left}
+.session-row{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid #1e2d4540}
+.session-row:last-child{border-bottom:none}
+.check-btn{width:22px;height:22px;border-radius:6px;flex-shrink:0;margin-top:2px;border:2px solid #1e2d45;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff}
+.badge-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
+.badge-card{border-radius:10px;padding:11px 12px;border:1px solid #1e2d45;opacity:0.4;transition:opacity .3s}
+.badge-card.earned{opacity:1;border-color:#f9731635;background:#141d2e}
+.pill{padding:5px 13px;border-radius:20px;border:1px solid #1e2d45;background:#141d2e;color:#64748b;font-size:12px;cursor:pointer;white-space:nowrap;font-weight:400}
+.pill.active{font-weight:600}
+.phase-filter{display:flex;gap:6px;margin-bottom:16px;overflow-x:auto;padding-bottom:4px}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);display:flex;align-items:flex-end;justify-content:center;z-index:100;padding:0 16px}
+.modal-box{background:#0f1623;border-radius:18px 18px 0 0;padding:20px 20px 36px;width:100%;max-width:480px;border:1px solid #1e2d45;border-bottom:none}
+.mood-btn{flex:1;font-size:22px;padding:8px 0;border-radius:10px;border:2px solid #1e2d45;background:none;cursor:pointer}
+.mood-btn.selected{border-color:#f97316;background:#7c2d0c30}
+input[type=text]{width:100%;padding:11px 13px;background:#141d2e;border:1px solid #1e2d45;border-radius:9px;color:#f1f5f9;font-size:14px;outline:none}
+.bar-chart{display:flex;align-items:flex-end;gap:3px;height:140px;overflow-x:auto;padding-bottom:24px;padding-top:8px}
+.bar-col{display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0;min-width:20px}
+.bar-label-top{font-size:8px;color:#64748b}
+.bar-rect{width:16px;border-radius:3px 3px 0 0;transition:height .3s}
+.bar-label-bot{font-size:8px;color:#64748b;transform:rotate(-45deg);transform-origin:top left;width:24px;margin-top:2px}
+@keyframes fall{0%{transform:translateY(0) rotate(0);opacity:1}100%{transform:translateY(110vh) rotate(720deg);opacity:0}}
+.confetti-piece{position:fixed;top:-20px;border-radius:50%;animation:fall ease-in forwards;pointer-events:none}
+.confetti-msg{position:fixed;top:36%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;z-index:999}
+@media(min-width:768px){
+  body{padding-bottom:20px}
+  .layout{display:grid;grid-template-columns:1fr 1fr;max-width:1200px;margin:0 auto}
+  .left-col{border-right:1px solid #1e2d45;min-height:100vh}
+  .badge-grid{grid-template-columns:repeat(3,1fr)}
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+// ── Config ──────────────────────────────────────────────────────────────────
+var PLAN_START = new Date(2026,4,4);
+var RACE_DATE  = new Date(2027,3,11);
+var LS_DATA    = "hm-data";
+var LS_CFG     = "hm-cfg";
+var TABLE      = "hm_training";
+var SB_URL     = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js";
+
+var PC={1:"#60a5fa",2:"#34d399",3:"#fbbf24",4:"#f87171",5:"#c084fc"};
+var SC={easy:"#60a5fa",long:"#34d399",tempo:"#fbbf24",strength:"#fb923c",recovery:"#c084fc",race:"#f97316",rowing:"#38bdf8"};
+var SI={easy:"🏃‍♀️",long:"🛤️",tempo:"⚡",strength:"💪",recovery:"🌿",race:"🏅",rowing:"🚣‍♀️"};
+var MOODS=["😫","😕","😊","💪","🚀"];
+
+var PHASES=[
+  {id:1,name:"Fundament",wStart:1,wEnd:12},
+  {id:2,name:"Basis",wStart:13,wEnd:24},
+  {id:3,name:"Qualität",wStart:25,wEnd:36},
+  {id:4,name:"Race Prep",wStart:37,wEnd:46},
+  {id:5,name:"Tapering",wStart:47,wEnd:49},
+];
+
+var BADGES=[
+  {id:"first", icon:"🚀", name:"Erste Schritte",  desc:"Erste Einheit abgehakt",          ok:function(d,ds){return ds.length>=1;}},
+  {id:"5km",   icon:"📏", name:"5 km Marke",       desc:"5 km in einer Einheit",           ok:function(d){return Object.values(d).some(function(e){return parseFloat((e&&e.km)||0)>=5;});}},
+  {id:"10km",  icon:"🏅", name:"10 km Marke",      desc:"10 km in einer Einheit",          ok:function(d){return Object.values(d).some(function(e){return parseFloat((e&&e.km)||0)>=10;});}},
+  {id:"15km",  icon:"🛤️",name:"15 km Hürde",      desc:"15 km in einer Einheit",          ok:function(d){return Object.values(d).some(function(e){return parseFloat((e&&e.km)||0)>=15;});}},
+  {id:"tempo", icon:"⚡", name:"Tempo-Läuferin",   desc:"Ersten Tempolauf absolviert",     ok:function(d,ds){return ds.some(function(s){return s.type==="tempo";});}},
+  {id:"row10", icon:"🚣‍♀️",name:"Ruder-Königin",  desc:"10 Ruder-Einheiten absolviert",  ok:function(d,ds){return ds.filter(function(s){return s.type==="rowing";}).length>=10;}},
+  {id:"s10",   icon:"💪", name:"10 Einheiten",     desc:"10 Einheiten abgehakt",           ok:function(d,ds){return ds.filter(function(s){return s.type!=="race";}).length>=10;}},
+  {id:"s25",   icon:"🌟", name:"25 Einheiten",     desc:"25 Einheiten abgehakt",           ok:function(d,ds){return ds.filter(function(s){return s.type!=="race";}).length>=25;}},
+  {id:"str3",  icon:"🔥", name:"3 Wochen Streak",  desc:"3 Wochen vollständig",            ok:function(d,ds,all,sk){return sk>=3;}},
+  {id:"str5",  icon:"🔥🔥",name:"5 Wochen Streak", desc:"5 Wochen vollständig",            ok:function(d,ds,all,sk){return sk>=5;}},
+  {id:"ph1",   icon:"1️⃣",name:"Phase 1 ✓",        desc:"Fundament-Phase abgeschlossen",   ok:function(d,ds,all){var p=all.filter(function(s){return getPh(s.week).id===1&&!s.optional&&s.type!=="race";});return p.length>0&&p.every(function(s){return d[s.id]&&d[s.id].done;});}},
+  {id:"half",  icon:"💯", name:"Halbzeit!",         desc:"50% des Plans absolviert",        ok:function(d,ds,all){var c=all.filter(function(s){return !s.optional&&s.type!=="race";}).length;return ds.filter(function(s){return !s.optional&&s.type!=="race";}).length>=c/2;}},
+];
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function getPh(w){return PHASES.find(function(p){return w>=p.wStart&&w<=p.wEnd;})||PHASES[4];}
+function lerp(a,b,t){return Math.round(a+(b-a)*Math.max(0,Math.min(1,t)));}
+function getCurWeek(){var ms=new Date().getTime()-PLAN_START.getTime();return Math.max(1,Math.min(49,Math.floor(ms/(7*24*3600*1000))+1));}
+function daysLeft(){return Math.max(0,Math.ceil((RACE_DATE.getTime()-new Date().getTime())/(24*3600*1000)));}
+function wkRange(w){
+  var s=new Date(PLAN_START);s.setDate(s.getDate()+(w-1)*7);
+  var e=new Date(s);e.setDate(e.getDate()+6);
+  function f(d){return d.toLocaleDateString("de-DE",{day:"2-digit",month:"short"});}
+  return f(s)+" – "+f(e);
+}
+function mkUID(){return "u-"+Math.random().toString(36).slice(2,10);}
+function lsGet(k,fb){try{var r=localStorage.getItem(k);return r?JSON.parse(r):(fb!==undefined?fb:null);}catch(e){return fb!==undefined?fb:null;}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;");}
+
+function rowSes(w,t){return [
+  {id:"w"+w+"-r1",type:"rowing",title:"Rudern – Ausdauer",  desc:lerp(20,45,t)+" Min gleichmäßig · Technik & Grundlage · schont Beckenboden"},
+  {id:"w"+w+"-r2",type:"rowing",title:"Rudern – Intervall", desc:"5 Min Einfahren · "+lerp(3,8,t)+"×2 Min zügig · 1 Min Pause · Ausfahren (~"+lerp(20,40,t)+" Min)"},
+];}
+
+function genSes(w){
+  var ph=getPh(w),t=(w-ph.wStart)/Math.max(ph.wEnd-ph.wStart,1);
+  if(ph.id===1)return [{id:"w"+w+"-1",type:"easy",title:"Lockerlauf + Beckenboden",desc:lerp(25,35,t)+" Min Wohlfühltempo · Beckenboden-Aktivierung (10 Min)"},
+    {id:"w"+w+"-2",type:"strength",title:"Lauf + Kräftigung",desc:lerp(25,30,t)+" Min locker · Core, Gesäß & Hüfte (20 Min)"}].concat(rowSes(w,t));
+  if(ph.id===2){var lm=lerp(40,70,t);return [{id:"w"+w+"-1",type:"easy",title:"Lockerlauf",desc:lerp(35,40,t)+" Min locker"},
+    {id:"w"+w+"-2",type:"strength",title:"Lauf + Kraft",desc:lerp(30,35,t)+" Min locker · Core-Kräftigung"},
+    {id:"w"+w+"-3",type:"long",title:"Langer Lauf",desc:lm+" Min sehr locker (~"+Math.round(lm/5.8)+" km)"}].concat(rowSes(w,t));}
+  if(ph.id===3){var lm3=lerp(60,90,t),iv=t<0.5?"4×6 Min @ 4:58/km":"5×8 Min @ 4:58/km";
+    return [{id:"w"+w+"-1",type:"easy",title:"Lockerlauf",desc:lerp(40,45,t)+" Min locker"},
+      {id:"w"+w+"-2",type:"tempo",title:"Tempolauf",desc:"10 Min Einlaufen · "+iv+" · 10 Min Auslaufen"},
+      {id:"w"+w+"-3",type:"long",title:"Langer Lauf",desc:lm3+" Min locker (~"+Math.round(lm3/5.5)+" km)"},
+      {id:"w"+w+"-4",type:"recovery",title:"Regeneration (opt.)",desc:"30 Min sehr locker · Stretching",optional:true}].concat(rowSes(w,t));}
+  if(ph.id===4){var km4=lerp(14,19,t);return [{id:"w"+w+"-1",type:"easy",title:"Lockerlauf",desc:"40 Min locker"},
+    {id:"w"+w+"-2",type:"tempo",title:"Renntempo",desc:"10 Min Einlaufen · "+lerp(25,35,t)+" Min @ 4:58/km · 10 Min Auslaufen"},
+    {id:"w"+w+"-3",type:"long",title:"Langer Lauf",desc:km4+" km locker (~"+Math.round(km4*5.5)+" Min)"},
+    {id:"w"+w+"-4",type:"recovery",title:"Regenerationslauf",desc:"30 Min sehr locker"}].concat(rowSes(w,t));}
+  if(w===49)return [{id:"w49-1",type:"easy",title:"Leichte Aktivierung",desc:"20 Min sehr locker · Beine frisch halten"},
+    {id:"w49-race",type:"race",title:"🏅 HALBMARATHON!",desc:"11. April 2027 · Ziel: unter 1:45:00 · Du hast es dir verdient!"}];
+  var tp=w===47?0:0.5;
+  return [{id:"w"+w+"-1",type:"easy",title:"Lockerlauf",desc:lerp(35,25,tp)+" Min locker"},
+    {id:"w"+w+"-2",type:"tempo",title:"Kurzes Tempotraining",desc:lerp(30,20,tp)+" Min Renntempo-Abschnitte"},
+    {id:"w"+w+"-3",type:"easy",title:"Lockerlauf",desc:lerp(30,20,tp)+" Min sehr locker"},
+    {id:"w"+w+"-r1",type:"rowing",title:"Rudern – locker",desc:"20 Min locker · Beine schonen"}];
+}
+
+function allSessions(){var a=[];for(var w=1;w<=49;w++)genSes(w).forEach(function(s){a.push(Object.assign({},s,{week:w}));});return a;}
+var ALL_SES = allSessions();
+
+function calcStreak(data){
+  var cur=getCurWeek(),streak=0;
+  for(var w=cur;w>=1;w--){
+    var req=genSes(w).filter(function(s){return !s.optional&&s.type!=="race";});
+    if(req.length>0&&req.every(function(s){return data[s.id]&&data[s.id].done;})){streak++;}
+    else{break;}
+  }
+  return streak;
+}
+function parseDur(str){
+  if(!str)return null;
+  var p=str.trim().split(":").map(Number);
+  if(p.some(isNaN)||p.length<2)return null;
+  return p.length===3?p[0]*3600+p[1]*60+p[2]:p[0]*60+p[1];
+}
+function fmtPace(s){var m=Math.floor(s/60),sc=Math.round(s%60);return m+":"+(("0"+sc).slice(-2));}
+function fmtTime(s){var h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=Math.round(s%60);return h>0?h+":"+(("0"+m).slice(-2))+":"+(("0"+sc).slice(-2)):m+":"+(("0"+sc).slice(-2));}
+
+// ── State ────────────────────────────────────────────────────────────────────
+var STATE = {
+  data:      lsGet(LS_DATA, {}),
+  cfg:       lsGet(LS_CFG),
+  tab:       "plan",
+  dtab:      "stats",
+  expanded:  getCurWeek(),
+  phFilter:  0,
+  modal:     null,
+  formTime:  "", formKm: "", formNotes: "", formMood: null,
+  syncSt:    "idle",
+  sbClient:  null,
+  syncTimer: null,
+  wide:      window.innerWidth >= 768,
+};
+
+// ── Supabase (lazy load) ──────────────────────────────────────────────────────
+function initSupabase(cb){
+  if(window.supabase){cb(window.supabase);return;}
+  var s=document.createElement("script");
+  s.src=SB_URL;
+  s.onload=function(){cb(window.supabase||{});};
+  s.onerror=function(){cb({});};
+  document.head.appendChild(s);
+}
+
+function connectSupabase(){
+  if(!STATE.cfg)return;
+  initSupabase(function(lib){
+    var fn=lib.createClient||(lib.default&&lib.default.createClient);
+    if(!fn)return;
+    STATE.sbClient=fn(STATE.cfg.url,STATE.cfg.key);
+    loadFromSupabase();
+  });
+}
+
+function loadFromSupabase(){
+  if(!STATE.sbClient||!STATE.cfg)return;
+  STATE.syncSt="syncing";render();
+  STATE.sbClient.from(TABLE).select("data").eq("user_id",STATE.cfg.userId).single()
+    .then(function(res){
+      if(!res.error&&res.data&&res.data.data&&Object.keys(res.data.data).length>0){
+        STATE.data=res.data.data;lsSet(LS_DATA,STATE.data);
+      }
+      STATE.syncSt="ok";render();
+    }).catch(function(){STATE.syncSt="error";render();});
+}
+
+function syncToSupabase(){
+  if(!STATE.sbClient||!STATE.cfg)return;
+  clearTimeout(STATE.syncTimer);
+  STATE.syncTimer=setTimeout(function(){
+    STATE.syncSt="syncing";render();
+    STATE.sbClient.from(TABLE).upsert({user_id:STATE.cfg.userId,data:STATE.data})
+      .then(function(res){STATE.syncSt=res.error?"error":"ok";render();})
+      .catch(function(){STATE.syncSt="error";render();});
+  },1200);
+}
+
+// ── Data helpers ──────────────────────────────────────────────────────────────
+function saveData(){lsSet(LS_DATA,STATE.data);syncToSupabase();}
+
+function toggleSession(id,week){
+  var prev=STATE.data[id]&&STATE.data[id].done;
+  if(!STATE.data[id])STATE.data[id]={};
+  STATE.data[id].done=!prev;
+  if(!prev){
+    var req=genSes(week).filter(function(s){return !s.optional&&s.type!=="race";});
+    if(req.every(function(s){return STATE.data[s.id]&&STATE.data[s.id].done;})){showConfetti();}
+  }
+  saveData();render();
+}
+
+function openModal(sid){
+  var e=STATE.data[sid]||{};
+  STATE.modal=sid;
+  STATE.formTime=e.time||"";STATE.formKm=e.km||"";STATE.formNotes=e.notes||"";STATE.formMood=e.mood!=null?e.mood:null;
+  render();
+}
+
+function submitModal(){
+  if(!STATE.modal)return;
+  if(!STATE.data[STATE.modal])STATE.data[STATE.modal]={};
+  STATE.data[STATE.modal].done=true;
+  STATE.data[STATE.modal].time=STATE.formTime;
+  STATE.data[STATE.modal].km=STATE.formKm;
+  STATE.data[STATE.modal].notes=STATE.formNotes;
+  STATE.data[STATE.modal].mood=STATE.formMood;
+  STATE.modal=null;
+  saveData();render();
+}
+
+// ── Confetti ──────────────────────────────────────────────────────────────────
+function showConfetti(){
+  var container=document.createElement("div");
+  container.style.cssText="position:fixed;inset:0;pointer-events:none;z-index:999;overflow:hidden";
+  var colors=["#f97316","#22c55e","#60a5fa","#fbbf24","#f87171","#c084fc"];
+  for(var i=0;i<60;i++){
+    var p=document.createElement("div");
+    var sz=5+Math.random()*9;
+    p.style.cssText="position:absolute;left:"+Math.random()*100+"%;top:-20px;width:"+sz+"px;height:"+sz+"px;background:"+colors[i%colors.length]+";border-radius:"+(Math.random()>0.4?"50%":"3px")+";animation:fall "+(1.4+Math.random()*0.9)+"s "+(Math.random()*0.9)+"s ease-in forwards";
+    container.appendChild(p);
+  }
+  var msg=document.createElement("div");
+  msg.className="confetti-msg";
+  msg.innerHTML='<div style="font-size:52px;margin-bottom:8px">🎉</div><div style="font-size:20px;font-weight:900;color:#fff;text-shadow:0 2px 20px #f97316;white-space:nowrap">Woche abgeschlossen!</div>';
+  container.appendChild(msg);
+  document.body.appendChild(container);
+  setTimeout(function(){document.body.removeChild(container);},4200);
+}
+
+// ── Derived ───────────────────────────────────────────────────────────────────
+function getDerived(){
+  var doneSes=ALL_SES.filter(function(s){return STATE.data[s.id]&&STATE.data[s.id].done;});
+  var countable=ALL_SES.filter(function(s){return !s.optional&&s.type!=="race";});
+  var doneCnt=doneSes.filter(function(s){return !s.optional&&s.type!=="race";}).length;
+  var totalKm=Object.values(STATE.data).reduce(function(a,d){return a+parseFloat((d&&d.km)||0);},0);
+  var pct=Math.round((doneCnt/countable.length)*100);
+  var streak=calcStreak(STATE.data);
+  var earnedB=BADGES.filter(function(b){return b.ok(STATE.data,doneSes,ALL_SES,streak);});
+  var chartData=[];
+  for(var w=1;w<=49;w++){
+    var km=genSes(w).reduce(function(a,s){return a+parseFloat((STATE.data[s.id]&&STATE.data[s.id].km)||0);},0);
+    if(km>0)chartData.push({name:"W"+w,km:parseFloat(km.toFixed(1)),fill:PC[getPh(w).id]||"#f97316"});
+  }
+  var logged=ALL_SES.filter(function(s){return (STATE.data[s.id]&&STATE.data[s.id].done)||(STATE.data[s.id]&&STATE.data[s.id].time);})
+    .map(function(s){return Object.assign({},s,{entry:STATE.data[s.id]||{}});}).reverse();
+  return {doneSes:doneSes,countable:countable,doneCnt:doneCnt,totalKm:totalKm,pct:pct,streak:streak,earnedB:earnedB,chartData:chartData,logged:logged};
+}
+
+// ── HTML builders ─────────────────────────────────────────────────────────────
+function hHeader(d){
+  var syncIcon=STATE.syncSt==="syncing"?"⏳":STATE.syncSt==="ok"?"☁️✓":STATE.syncSt==="error"?"☁️✗":STATE.cfg?"☁️":"💾";
+  var syncColor=STATE.syncSt==="error"?"#f87171":STATE.syncSt==="ok"?"#22c55e":"#64748b";
+  var curW=getCurWeek();
+  return '<div style="background:#0f1623;border-bottom:1px solid #1e2d45;padding:16px 16px 0;position:sticky;top:0;z-index:50">'+
+    '<div style="max-width:480px;margin:0 auto">'+
+    '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">'+
+      '<div>'+
+        '<div style="font-size:18px;font-weight:800;letter-spacing:-0.5px">🏃‍♀️ Halbmarathon 2027</div>'+
+        '<div style="font-size:12px;color:#64748b;margin-top:2px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">'+
+          '<span>Noch <strong style="color:#f97316">'+daysLeft()+'</strong> Tage</span>'+
+          '<span style="color:#1e2d45">·</span>'+
+          '<span>'+getPh(curW).name+'</span>'+
+          (d.streak>0?'<span style="background:#7c2d0c30;border:1px solid #f9731640;color:#f97316;border-radius:10px;padding:1px 7px;font-weight:700;font-size:11px">🔥 '+d.streak+'W</span>':'')+
+          (d.earnedB.length>0?'<span style="background:#78350f30;border:1px solid #fbbf2440;color:#fbbf24;border-radius:10px;padding:1px 7px;font-weight:700;font-size:11px">🏅 '+d.earnedB.length+'</span>':'')+
+          '<span style="font-size:11px;color:'+syncColor+'">'+syncIcon+'</span>'+
+        '</div>'+
+      '</div>'+
+      '<div style="text-align:right;flex-shrink:0">'+
+        '<div style="font-size:26px;font-weight:900;color:#f97316;line-height:1">'+d.pct+'%</div>'+
+        '<div style="font-size:10px;color:#64748b">absolviert</div>'+
+      '</div>'+
+    '</div>'+
+    '<div style="height:5px;background:#1e2d45;border-radius:3px;margin-bottom:12px;overflow:hidden">'+
+      '<div style="height:100%;width:'+d.pct+'%;background:linear-gradient(90deg,#f97316,#ef4444);border-radius:3px;transition:width .6s"></div>'+
+    '</div>'+
+    '<div style="display:flex;gap:8px;margin-bottom:14px">'+
+      [["Einheiten ✓",d.doneCnt+"/"+d.countable.length],["KM gelaufen",d.totalKm.toFixed(0)+" km"],["Woche",getCurWeek()+"/49"]].map(function(s){
+        return '<div style="flex:1;background:#141d2e;border-radius:10px;padding:9px 10px;border:1px solid #1e2d45">'+
+          '<div style="font-size:14px;font-weight:700">'+s[1]+'</div>'+
+          '<div style="font-size:10px;color:#64748b;margin-top:1px">'+s[0]+'</div></div>';
+      }).join("")+
+    '</div>'+
+    '<div style="display:flex">'+
+      [["plan","📋 Plan"],["stats","📊 Stats"],["zeiten","⏱ Zeiten"],["tipps","💡 Tipps"]].map(function(t){
+        return '<button class="tab-btn'+(STATE.tab===t[0]?" active":"")+" " +'" data-tab="'+t[0]+'">'+t[1]+'</button>';
+      }).join("")+
+    '</div>'+
+    '</div></div>';
+}
+
+function hPlanPanel(){
+  var curW=getCurWeek();
+  var phColors=["#f1f5f9","#60a5fa","#34d399","#fbbf24","#f87171","#c084fc"];
+  var html='<div style="padding:16px">';
+  html+='<div class="phase-filter">';
+  html+='<button class="pill'+(STATE.phFilter===0?" active":"")+'" data-phfilter="0" style="'+(STATE.phFilter===0?"border-color:#f97316;color:#f97316;background:#f9731625":"")+'">Alle</button>';
+  PHASES.forEach(function(p){
+    var c=PC[p.id];
+    html+='<button class="pill'+(STATE.phFilter===p.id?" active":"")+'" data-phfilter="'+p.id+'" style="'+(STATE.phFilter===p.id?"border-color:"+c+";color:"+c+";background:"+c+"25":"")+'">'+p.name+'</button>';
+  });
+  html+='</div>';
+  for(var w=1;w<=49;w++){
+    if(STATE.phFilter!==0&&getPh(w).id!==STATE.phFilter)continue;
+    var ph=getPh(w),ses=genSes(w);
+    var dn=ses.filter(function(s){return STATE.data[s.id]&&STATE.data[s.id].done;}).length;
+    var isCur=w===curW,exp=STATE.expanded===w;
+    html+='<div class="week-card'+(isCur?" current":"")+'">';
+    html+='<button class="week-header" data-toggle="'+w+'">';
+    html+='<div style="display:flex;align-items:center;gap:10px">';
+    html+='<div style="width:3px;height:40px;background:'+PC[ph.id]+';border-radius:2px;flex-shrink:0"></div>';
+    html+='<div><div style="display:flex;align-items:center;gap:6px">';
+    html+='<span style="font-size:14px;font-weight:700">Woche '+w+'</span>';
+    if(isCur)html+='<span style="font-size:10px;background:#f97316;color:#fff;padding:2px 7px;border-radius:10px;font-weight:700">JETZT</span>';
+    if(dn===ses.length&&ses.length>0)html+='<span>✅</span>';
+    html+='</div><div style="font-size:11px;color:#64748b;margin-top:1px">'+wkRange(w)+' · '+ph.name+'</div>';
+    html+='</div></div>';
+    html+='<div style="display:flex;align-items:center;gap:8px">';
+    html+='<span style="font-size:12px;color:'+(dn===ses.length?"#22c55e":"#64748b")+'">'+dn+'/'+ses.length+'</span>';
+    html+='<span style="font-size:16px;color:#64748b;display:inline-block;transform:'+(exp?"rotate(180deg)":"none")+';transition:.15s">▾</span>';
+    html+='</div></button>';
+    if(exp){
+      html+='<div style="border-top:1px solid #1e2d45;padding:8px 14px 12px">';
+      ses.forEach(function(s,i){
+        var entry=STATE.data[s.id]||{};
+        var done=!!entry.done;
+        var bc=done?SC[s.type]:"#1e2d45";
+        html+='<div class="session-row" style="'+(i===ses.length-1?"border-bottom:none":"")+(done?"opacity:0.75":"")+'">'; 
+        html+='<button class="check-btn" data-check="'+esc(s.id)+'" data-week="'+w+'" style="border-color:'+bc+';background:'+(done?SC[s.type]:"transparent")+'">'+(done?"✓":"")+'</button>';
+        html+='<div style="flex:1">';
+        html+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;flex-wrap:wrap">';
+        html+='<span>'+SI[s.type]+'</span>';
+        html+='<span style="font-size:13px;font-weight:600;'+(done?"text-decoration:line-through;color:#64748b":"")+'">'+esc(s.title)+'</span>';
+        if(s.optional)html+='<span style="font-size:10px;color:#64748b;border:1px solid #1e2d45;border-radius:4px;padding:1px 5px">optional</span>';
+        if(entry.mood!=null)html+='<span style="font-size:14px">'+MOODS[entry.mood-1]+'</span>';
+        html+='</div>';
+        html+='<div style="font-size:11px;color:#64748b;line-height:1.5">'+esc(s.desc)+'</div>';
+        if(entry.time||entry.km){
+          html+='<div style="font-size:11px;color:'+SC[s.type]+';margin-top:3px;font-weight:500">⏱ '+(entry.time||"")+(entry.km?" · "+entry.km+" km":"")+(entry.notes?" · „"+esc(entry.notes)+'"':"")+'</div>';
+        }
+        html+='</div>';
+        html+='<button style="padding:3px 9px;border-radius:6px;border:1px solid #1e2d45;background:none;color:#64748b;font-size:11px;cursor:pointer;flex-shrink:0;margin-top:2px" data-open="'+esc(s.id)+'">'+(entry.time?"✏️":"+ Zeit")+'</button>';
+        html+='</div>';
+      });
+      html+='</div>';
+    }
+    html+='</div>';
+  }
+  html+='</div>';
+  return html;
+}
+
+function hStatsPanel(d){
+  var html='<div style="padding:16px">';
+  // Streak
+  html+='<div style="background:#141d2e;border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid '+(d.streak>0?"#f9731640":"#1e2d45")+';display:flex;align-items:center;gap:16px">';
+  html+='<div style="font-size:44px;line-height:1">'+(d.streak===0?"😴":d.streak>=5?"🔥🔥":"🔥")+'</div>';
+  html+='<div>';
+  html+='<div style="font-size:32px;font-weight:900;color:'+(d.streak>0?"#f97316":"#64748b")+';line-height:1">'+d.streak+'</div>';
+  html+='<div style="font-size:13px;font-weight:700">'+(d.streak===0?"Noch kein Streak":d.streak===1?"Woche in Folge":"Wochen in Folge!")+'</div>';
+  html+='<div style="font-size:11px;color:#64748b;margin-top:1px">Schließe jede Woche vollständig ab 💪</div>';
+  html+='</div></div>';
+  // Badges
+  html+='<div style="font-size:14px;font-weight:700;margin-bottom:10px">🏅 Abzeichen — '+d.earnedB.length+'/'+BADGES.length+'</div>';
+  html+='<div class="badge-grid">';
+  BADGES.forEach(function(b){
+    var ok=d.earnedB.some(function(x){return x.id===b.id;});
+    html+='<div class="badge-card'+(ok?" earned":"")+'">';
+    html+='<div style="font-size:24px;margin-bottom:4px">'+b.icon+'</div>';
+    html+='<div style="font-size:12px;font-weight:700;color:'+(ok?"#f1f5f9":"#64748b")+'">'+b.name+'</div>';
+    html+='<div style="font-size:10px;color:#64748b;margin-top:2px;line-height:1.3">'+b.desc+'</div>';
+    if(ok)html+='<div style="font-size:10px;color:#22c55e;margin-top:4px;font-weight:600">✓ Verdient!</div>';
+    html+='</div>';
+  });
+  html+='</div>';
+  // Chart
+  html+='<div style="font-size:14px;font-weight:700;margin-bottom:10px">📈 KM pro Woche</div>';
+  if(d.chartData.length===0){
+    html+='<div style="background:#141d2e;border-radius:12px;padding:30px;text-align:center;color:#64748b;font-size:13px;border:1px solid #1e2d45;margin-bottom:16px">Nach dem ersten Lauf km eintragen!</div>';
+  } else {
+    var maxKm=Math.max.apply(null,d.chartData.map(function(x){return x.km;}));
+    html+='<div style="background:#141d2e;border-radius:12px;padding:16px 12px 12px;border:1px solid #1e2d45;margin-bottom:16px">';
+    html+='<div class="bar-chart">';
+    d.chartData.forEach(function(x){
+      var bh=Math.max(4,Math.round((x.km/maxKm)*110));
+      html+='<div class="bar-col">';
+      html+='<div class="bar-label-top">'+x.km+'</div>';
+      html+='<div class="bar-rect" style="height:'+bh+'px;background:'+x.fill+'"></div>';
+      html+='<div class="bar-label-bot">'+x.name+'</div>';
+      html+='</div>';
+    });
+    html+='</div></div>';
+  }
+  // Pace calculator
+  html+='<div style="font-size:14px;font-weight:700;margin-bottom:10px">⏱ Pace-Rechner</div>';
+  html+='<div style="background:#141d2e;border-radius:12px;padding:16px;border:1px solid #1e2d45">';
+  html+='<div style="display:flex;gap:10px;margin-bottom:12px">';
+  html+='<div style="flex:1"><div style="font-size:11px;color:#64748b;margin-bottom:5px">Zeit (mm:ss)</div>';
+  html+='<input type="text" id="paceTime" placeholder="32:45" value="'+esc(STATE.paceTime||"")+'" style="width:100%;padding:10px 12px;background:#0f1623;border:1px solid #1e2d45;border-radius:8px;color:#f1f5f9;font-size:14px;outline:none"></div>';
+  html+='<div style="flex:1"><div style="font-size:11px;color:#64748b;margin-bottom:5px">Distanz (km)</div>';
+  html+='<input type="text" id="paceKm" placeholder="5.8" value="'+esc(STATE.paceKm||"")+'" style="width:100%;padding:10px 12px;background:#0f1623;border:1px solid #1e2d45;border-radius:8px;color:#f1f5f9;font-size:14px;outline:none"></div>';
+  html+='</div>';
+  html+='<button id="calcPaceBtn" style="width:100%;padding:11px;border-radius:9px;border:none;background:#f97316;color:#fff;font-size:14px;font-weight:700;cursor:pointer">Pace berechnen →</button>';
+  if(STATE.paceResult){
+    var pr=STATE.paceResult;
+    html+='<div style="margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+    [["Deine Pace",pr.pace+" /km"],["5 km",pr.k5],["10 km",pr.k10],["Halbmarathon",pr.hm]].forEach(function(r){
+      html+='<div style="background:#0f1623;border-radius:8px;padding:10px 12px;border:1px solid #1e2d45">';
+      html+='<div style="font-size:16px;font-weight:800;color:#f97316">'+r[1]+'</div>';
+      html+='<div style="font-size:10px;color:#64748b;margin-top:1px">'+r[0]+'</div></div>';
+    });
+    html+='</div>';
+  }
+  html+='<div style="margin-top:12px;padding:10px 12px;background:#0f1623;border-radius:8px;border:1px solid #1e2d45">';
+  html+='<div style="font-size:11px;color:#64748b">🎯 Zieltempo für 1:45 Std.</div>';
+  html+='<div style="font-size:15px;font-weight:700;color:#fbbf24;margin-top:2px">4:58 min/km</div></div>';
+  html+='</div>';
+  html+='</div>';
+  return html;
+}
+
+function hZeitenPanel(d){
+  var html='<div style="padding:16px"><div style="font-size:15px;font-weight:700;margin-bottom:14px">Meine Einheiten & Zeiten</div>';
+  if(d.logged.length===0){html+='<div style="text-align:center;color:#64748b;padding:50px 0;font-size:14px">Noch keine Einheiten eingetragen. Los geht\'s! 🏃‍♀️</div>';}
+  else{
+    d.logged.forEach(function(s){
+      var e=s.entry||{};
+      html+='<div style="background:#141d2e;border-radius:10px;padding:12px 14px;margin-bottom:8px;border:1px solid #1e2d45;display:flex;align-items:center;gap:12px">';
+      html+='<div style="font-size:22px;flex-shrink:0">'+SI[s.type]+'</div>';
+      html+='<div style="flex:1;min-width:0">';
+      html+='<div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(s.title)+'</div>';
+      html+='<div style="font-size:11px;color:#64748b">Woche '+s.week+' · '+wkRange(s.week).split("–")[0].trim()+'</div>';
+      if(e.time||e.km)html+='<div style="font-size:12px;color:'+SC[s.type]+';margin-top:2px;font-weight:500">⏱ '+(e.time||"")+(e.km?" · "+e.km+" km":"")+'</div>';
+      if(e.notes)html+='<div style="font-size:11px;color:#64748b;font-style:italic;margin-top:1px">„'+esc(e.notes)+'"</div>';
+      html+='</div>';
+      html+='<div style="display:flex;flex-direction:column;align-items:center;gap:4px">';
+      if(e.mood!=null)html+='<span style="font-size:20px">'+MOODS[e.mood-1]+'</span>';
+      html+='<button style="padding:4px 10px;border-radius:8px;border:1px solid #1e2d45;background:none;color:#64748b;font-size:11px;cursor:pointer" data-open="'+esc(s.id)+'">✏️</button>';
+      html+='</div></div>';
+    });
+  }
+  html+='</div>';
+  return html;
+}
+
+function hTippsPanel(){
+  var secs=[
+    {icon:"🩺",title:"Beckenboden – Top-Priorität",clr:"#f87171",items:["Physio-Termin vor dem ersten intensiven Training","Jede Laufeinheit mit 10 Min Beckenboden-Aktivierung","Rudern ist beckenbodenschonend – ideal als Ergänzung!","Warnsignal: Druckgefühl oder Urinverlust → Tempo reduzieren"]},
+    {icon:"🚣‍♀️",title:"Rudertraining",clr:"#38bdf8",items:["Haltung: aufrechter Rücken, erst Beine dann Arme","Atemrhythmus: ausatmen beim Zug, einatmen beim Vorgleiten","Rudern stärkt Rücken & Rumpf – unterstützt das Laufen","Widerstand langsam steigern – lieber länger als intensiver"]},
+    {icon:"⚡",title:"Dein Zieltempo",clr:"#fbbf24",items:["Ziel: 1:45 Std. = 4:58 min/km","Lockerlauf: 6:30–7:00 min/km","Langer Lauf: 6:00–6:30 min/km","Tempolauf: 4:50–5:05 min/km"]},
+    {icon:"😴",title:"Regeneration ist Training",clr:"#60a5fa",items:["Schlaf ist das stärkste Trainingsmittel – 7–8 Stunden","Nach langen Läufen: Beine hochlegen, proteinreich essen","Muskelkater ≠ Gelenkschmerz – bei Gelenkschmerzen pausieren!","Mindestens 1 kompletter Ruhetag pro Woche"]},
+    {icon:"🥗",title:"Ernährung & Hydration",clr:"#34d399",items:["Vor Läufen > 60 Min: KH-reiche Mahlzeit 2 Std. vorher","Nach Training: Protein + KH innerhalb von 30 Min","2–3 Liter Wasser täglich, mehr bei Hitze","Ab Woche 25: Long Runs mit Gels oder Banane üben"]},
+  ];
+  var html='<div style="padding:16px">';
+  secs.forEach(function(sec){
+    html+='<div style="background:#141d2e;border-radius:12px;padding:14px 16px;margin-bottom:10px;border:1px solid #1e2d45">';
+    html+='<div style="font-size:15px;font-weight:700;margin-bottom:10px;color:'+sec.clr+'">'+sec.icon+' '+sec.title+'</div>';
+    sec.items.forEach(function(it){
+      html+='<div style="display:flex;gap:8px;margin-bottom:7px">';
+      html+='<span style="color:#f97316;flex-shrink:0;margin-top:1px">›</span>';
+      html+='<span style="font-size:13px;color:#64748b;line-height:1.5">'+esc(it)+'</span></div>';
+    });
+    html+='</div>';
+  });
+  html+='</div>';
+  return html;
+}
+
+function hModal(){
+  if(!STATE.modal)return "";
+  var ses=ALL_SES.find(function(s){return s.id===STATE.modal;});
+  if(!ses)return "";
+  return '<div class="modal-overlay" id="modalOverlay">'+
+    '<div class="modal-box">'+
+    '<div style="width:36px;height:4px;background:#1e2d45;border-radius:2px;margin:0 auto 18px"></div>'+
+    '<div style="font-size:16px;font-weight:700;margin-bottom:2px">Einheit eintragen</div>'+
+    '<div style="font-size:13px;color:#64748b;margin-bottom:16px">'+SI[ses.type]+' '+esc(ses.title)+'</div>'+
+    '<div style="margin-bottom:16px">'+
+      '<div style="font-size:12px;color:#64748b;margin-bottom:8px">Wie hast du dich gefühlt?</div>'+
+      '<div style="display:flex;gap:8px">'+
+        MOODS.map(function(m,i){return '<button class="mood-btn'+(STATE.formMood===i+1?" selected":"")+'" data-mood="'+i+'"style="flex:1">'+m+'</button>';}).join("")+
+      '</div>'+
+    '</div>'+
+    '<div style="margin-bottom:12px"><div style="font-size:12px;color:#64748b;margin-bottom:5px">Zeit</div>'+
+      '<input type="text" id="mTime" placeholder="z. B. 32:45" value="'+esc(STATE.formTime)+'"></div>'+
+    '<div style="margin-bottom:12px"><div style="font-size:12px;color:#64748b;margin-bottom:5px">Distanz (km)</div>'+
+      '<input type="text" id="mKm" placeholder="z. B. 5.8" value="'+esc(STATE.formKm)+'"></div>'+
+    '<div style="margin-bottom:12px"><div style="font-size:12px;color:#64748b;margin-bottom:5px">Notizen</div>'+
+      '<input type="text" id="mNotes" placeholder="Wie war\'s?" value="'+esc(STATE.formNotes)+'"></div>'+
+    '<div style="display:flex;gap:10px;margin-top:18px">'+
+      '<button id="modalCancel" style="flex:1;padding:13px;border-radius:11px;border:1px solid #1e2d45;background:none;color:#64748b;font-size:14px;cursor:pointer">Abbrechen</button>'+
+      '<button id="modalSave" style="flex:2;padding:13px;border-radius:11px;border:none;background:#f97316;color:#fff;font-size:14px;font-weight:700;cursor:pointer">Speichern ✓</button>'+
+    '</div></div></div>';
+}
+
+function hSetup(){
+  var SQL='create table hm_training (\n  user_id text primary key,\n  data jsonb\n);\nalter table hm_training enable row level security;\ncreate policy "open" on hm_training for all using (true);';
+  return '<div style="background:#080c14;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px">'+
+    '<div style="max-width:440px;width:100%">'+
+    '<div style="text-align:center;margin-bottom:28px">'+
+      '<div style="font-size:48px;margin-bottom:8px">🏃‍♀️</div>'+
+      '<div style="font-size:22px;font-weight:900">Halbmarathon 2027</div>'+
+      '<div style="font-size:13px;color:#64748b;margin-top:6px">Verbinde Supabase für Geräte-Sync – oder überspringe den Schritt.</div>'+
+    '</div>'+
+    '<div style="background:#141d2e;border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid #1e2d45">'+
+      '<div style="font-size:13px;font-weight:700;color:#f97316;margin-bottom:12px">📋 Supabase einrichten (einmalig)</div>'+
+      [["1","supabase.com → Neues Projekt erstellen (kostenlos)"],["2","SQL Editor → Code unten ausführen"],["3","Project Settings → API → URL & anon key kopieren"]].map(function(x){
+        return '<div style="display:flex;gap:10px;margin-bottom:8px"><span style="background:#f97316;color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">'+x[0]+'</span><span style="font-size:12px;color:#64748b;line-height:1.5">'+x[1]+'</span></div>';
+      }).join("")+
+      '<pre style="background:#0f1623;border-radius:8px;padding:10px 12px;font-size:11px;color:#34d399;border:1px solid #1e2d45;line-height:1.9;overflow-x:auto;user-select:all">'+esc(SQL)+'</pre>'+
+    '</div>'+
+    '<div style="background:#141d2e;border-radius:12px;padding:16px;border:1px solid #1e2d45">'+
+      '<div style="font-size:12px;color:#64748b;margin-bottom:5px">Supabase Project URL</div>'+
+      '<input type="text" id="sbUrl" placeholder="https://xxxx.supabase.co" style="width:100%;padding:11px 13px;background:#080c14;border:1px solid #1e2d45;border-radius:9px;color:#f1f5f9;font-size:13px;outline:none;margin-bottom:10px">'+
+      '<div style="font-size:12px;color:#64748b;margin-bottom:5px">Supabase Anon Key</div>'+
+      '<input type="password" id="sbKey" placeholder="eyJhbGci..." style="width:100%;padding:11px 13px;background:#080c14;border:1px solid #1e2d45;border-radius:9px;color:#f1f5f9;font-size:13px;outline:none;margin-bottom:10px">'+
+      '<div style="font-size:12px;color:#64748b;margin-bottom:5px">Deine User-ID <span style="color:#f97316">(nicht ändern!)</span></div>'+
+      '<input type="text" id="sbUid" value="'+esc(mkUID())+'" style="width:100%;padding:11px 13px;background:#080c14;border:1px solid #1e2d45;border-radius:9px;color:#f1f5f9;font-size:13px;outline:none;margin-bottom:10px">'+
+      '<div style="font-size:11px;color:#64748b;margin-bottom:14px">⚠️ Notiere deine User-ID – damit loggst du dich auf anderen Geräten ein.</div>'+
+      '<div id="setupErr" style="display:none;color:#f87171;font-size:12px;margin-bottom:12px;padding:8px 12px;background:#f8717115;border-radius:8px"></div>'+
+      '<button id="sbConnect" style="width:100%;padding:13px;border-radius:11px;border:none;background:#f97316;color:#fff;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:10px">Verbinden & starten →</button>'+
+      '<button id="sbSkip" style="width:100%;padding:11px;border-radius:11px;border:1px solid #1e2d45;background:none;color:#64748b;font-size:13px;cursor:pointer">Ohne Sync starten (nur lokal)</button>'+
+    '</div></div></div>';
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function render(){
+  var app=document.getElementById("app");
+  if(!app)return;
+  if(!STATE.cfg){app.innerHTML=hSetup();bindSetup();return;}
+  var d=getDerived();
+  var isWide=window.innerWidth>=768;
+  var html=hHeader(d);
+  if(isWide){
+    html+='<div class="layout">';
+    html+='<div class="left-col"><div style="padding:12px 32px 8px;border-bottom:1px solid #1e2d45;font-size:13px;font-weight:700;color:#64748b">📋 TRAININGSPLAN</div>'+hPlanPanel()+'</div>';
+    html+='<div>';
+    html+='<div style="display:flex;border-bottom:1px solid #1e2d45">';
+    [["stats","📊 Stats"],["zeiten","⏱ Zeiten"],["tipps","💡 Tipps"]].forEach(function(t){
+      html+='<button class="tab-btn'+(STATE.dtab===t[0]?" active":"")+" dtab-btn"+" " +'" data-dtab="'+t[0]+'">'+t[1]+'</button>';
+    });
+    html+='</div>';
+    if(STATE.dtab==="stats")html+=hStatsPanel(d);
+    else if(STATE.dtab==="zeiten")html+=hZeitenPanel(d);
+    else html+=hTippsPanel();
+    html+='</div>';
+    html+='</div>';
+  } else {
+    if(STATE.tab==="plan")html+=hPlanPanel();
+    else if(STATE.tab==="stats")html+=hStatsPanel(d);
+    else if(STATE.tab==="zeiten")html+=hZeitenPanel(d);
+    else html+=hTippsPanel();
+  }
+  html+=hModal();
+  app.innerHTML=html;
+  bindEvents();
+}
+
+// ── Event binding ─────────────────────────────────────────────────────────────
+function bindEvents(){
+  // Tab buttons
+  document.querySelectorAll("[data-tab]").forEach(function(b){
+    b.addEventListener("click",function(){STATE.tab=b.dataset.tab;render();});
+  });
+  document.querySelectorAll("[data-dtab]").forEach(function(b){
+    b.addEventListener("click",function(){STATE.dtab=b.dataset.dtab;render();});
+  });
+  // Phase filter
+  document.querySelectorAll("[data-phfilter]").forEach(function(b){
+    b.addEventListener("click",function(){STATE.phFilter=parseInt(b.dataset.phfilter);render();});
+  });
+  // Week toggle
+  document.querySelectorAll("[data-toggle]").forEach(function(b){
+    b.addEventListener("click",function(){
+      var w=parseInt(b.dataset.toggle);
+      STATE.expanded=STATE.expanded===w?null:w;render();
+    });
+  });
+  // Check session
+  document.querySelectorAll("[data-check]").forEach(function(b){
+    b.addEventListener("click",function(e){e.stopPropagation();toggleSession(b.dataset.check,parseInt(b.dataset.week));});
+  });
+  // Open modal
+  document.querySelectorAll("[data-open]").forEach(function(b){
+    b.addEventListener("click",function(e){e.stopPropagation();openModal(b.dataset.open);});
+  });
+  // Modal
+  var overlay=document.getElementById("modalOverlay");
+  if(overlay)overlay.addEventListener("click",function(e){if(e.target===overlay){STATE.modal=null;render();}});
+  var cancel=document.getElementById("modalCancel");
+  if(cancel)cancel.addEventListener("click",function(){STATE.modal=null;render();});
+  var save=document.getElementById("modalSave");
+  if(save)save.addEventListener("click",function(){
+    STATE.formTime=(document.getElementById("mTime")||{}).value||"";
+    STATE.formKm=(document.getElementById("mKm")||{}).value||"";
+    STATE.formNotes=(document.getElementById("mNotes")||{}).value||"";
+    submitModal();
+  });
+  document.querySelectorAll("[data-mood]").forEach(function(b){
+    b.addEventListener("click",function(){STATE.formMood=parseInt(b.dataset.mood)+1;
+      document.querySelectorAll(".mood-btn").forEach(function(x){x.classList.remove("selected");});
+      b.classList.add("selected");
+    });
+  });
+  // Pace
+  var calcBtn=document.getElementById("calcPaceBtn");
+  if(calcBtn)calcBtn.addEventListener("click",function(){
+    STATE.paceTime=(document.getElementById("paceTime")||{}).value||"";
+    STATE.paceKm=(document.getElementById("paceKm")||{}).value||"";
+    var sec=parseDur(STATE.paceTime),km=parseFloat(STATE.paceKm);
+    if(!sec||!km||km<=0){STATE.paceResult=null;}
+    else{var ppk=sec/km;STATE.paceResult={pace:fmtPace(ppk),k5:fmtTime(ppk*5),k10:fmtTime(ppk*10),hm:fmtTime(ppk*21.0975)};}
+    render();
+  });
+  // Resize
+  window.addEventListener("resize",function(){render();},{once:true});
+}
+
+function bindSetup(){
+  var sbSkip=document.getElementById("sbSkip");
+  if(sbSkip)sbSkip.addEventListener("click",function(){STATE.cfg=false;lsSet(LS_CFG,false);render();});
+  var sbConnect=document.getElementById("sbConnect");
+  if(sbConnect)sbConnect.addEventListener("click",function(){
+    var url=(document.getElementById("sbUrl")||{}).value||"";
+    var key=(document.getElementById("sbKey")||{}).value||"";
+    var userId=(document.getElementById("sbUid")||{}).value||mkUID();
+    var errEl=document.getElementById("setupErr");
+    if(!url||!key){if(errEl){errEl.style.display="block";errEl.textContent="Bitte URL und API-Key eingeben.";}return;}
+    sbConnect.textContent="Verbinde…";sbConnect.disabled=true;
+    initSupabase(function(lib){
+      var fn=lib.createClient||(lib.default&&lib.default.createClient);
+      if(!fn){if(errEl){errEl.style.display="block";errEl.textContent="Supabase konnte nicht geladen werden.";}sbConnect.textContent="Verbinden & starten →";sbConnect.disabled=false;return;}
+      try{
+        var sb=fn(url,key);
+        sb.from(TABLE).upsert({user_id:userId,data:{}}).then(function(res){
+          if(res.error){if(errEl){errEl.style.display="block";errEl.textContent="Fehler: "+res.error.message;}sbConnect.textContent="Verbinden & starten →";sbConnect.disabled=false;}
+          else{STATE.cfg={url:url,key:key,userId:userId};lsSet(LS_CFG,STATE.cfg);connectSupabase();render();}
+        }).catch(function(e){if(errEl){errEl.style.display="block";errEl.textContent="Fehler: "+e.message;}sbConnect.textContent="Verbinden & starten →";sbConnect.disabled=false;});
+      }catch(e){if(errEl){errEl.style.display="block";errEl.textContent="Fehler: "+e.message;}sbConnect.textContent="Verbinden & starten →";sbConnect.disabled=false;}
+    });
+  });
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+window.addEventListener("resize",function(){render();});
+render();
+if(STATE.cfg)connectSupabase();
+</script>
+</body>
+</html>
