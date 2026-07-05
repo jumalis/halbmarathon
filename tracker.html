@@ -57,6 +57,7 @@ input,select,textarea{font-family:inherit;font-size:15px;color:var(--text);min-w
 .btn-ghost{border:none;background:none;color:var(--text2);padding:8px 10px}
 .btn:disabled{opacity:0.45;cursor:default}
 .btn:active,.icon-btn:active{transform:scale(0.97)}
+.btn svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
 .icon-btn{width:36px;height:36px;border-radius:11px;border:1px solid var(--border);background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--text2);transition:transform .1s ease;flex-shrink:0}
 input[type=text],input[type=number],input[type=password],select,textarea{width:100%;max-width:100%;padding:11px 13px;background:var(--surface);border:1px solid var(--border);border-radius:11px;outline:none}
 input:focus,select:focus,textarea:focus{border-color:var(--acc)}
@@ -211,6 +212,8 @@ var ICONS={
   sp_soccer:  ic('<circle cx="12" cy="12" r="8.2"/><path d="M12 8.2l3.6 2.6-1.4 4.2h-4.4l-1.4-4.2L12 8.2z"/><path d="M12 3.8v4.4M19.6 10.8l-4 0M15.9 19.6L14.2 15M8.1 19.6L9.8 15M4.4 10.8l4 0"/>'),
   sp_tennis:  ic('<circle cx="12" cy="12" r="8.2"/><path d="M4.6 7.5a11 11 0 0 1 0 9M19.4 7.5a11 11 0 0 0 0 9"/>'),
   sp_other:   ic('<path d="M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2 2-6z"/>'),
+  camera:     ic('<path d="M4 8h3.2L9 5.5h6L16.8 8H20a1.5 1.5 0 0 1 1.5 1.5v8.5a2 2 0 0 1-2 2h-15a2 2 0 0 1-2-2V9.5A1.5 1.5 0 0 1 4 8z"/><circle cx="12" cy="13.5" r="3.4"/>'),
+  plan:       ic('<rect x="4" y="5" width="16" height="16" rx="3"/><path d="M4 10h16M9 3v4M15 3v4M9 15.5l2 2 4-4"/>'),
 };
 var MEAL_ICON={breakfast:ICONS.breakfast,lunch:ICONS.lunch,dinner:ICONS.dinner,snack:ICONS.snack};
 function sportIcon(id){return ICONS["sp_"+id]||ICONS.sp_other;}
@@ -243,6 +246,7 @@ var STATE={
   syncSt:CFG.sbUrl?"idle":"off",
   sbClient:null,
   syncTimer:null,
+  review:null,
 };
 
 // ── Supabase sync ─────────────────────────────────────────────────────────────
@@ -309,13 +313,39 @@ var FOOD_SCHEMA={
   required:["items"],
   additionalProperties:false
 };
-var FOOD_SYSTEM="Du bist ein präziser Ernährungsrechner. Der Nutzer beschreibt auf Deutsch, was er gegessen oder getrunken hat. "+
-"Zerlege die Beschreibung in einzelne Bestandteile und schätze für jeden realistisch: Kalorien (kcal), Protein, Kohlenhydrate und Fett in Gramm. "+
-"Wenn keine Menge angegeben ist, gehe von üblichen deutschen Portionsgrößen aus und nenne die angenommene Menge im Feld 'menge' (z. B. '1 Scheibe, ca. 50 g'). "+
+var FOOD_SYSTEM="Du bist ein präziser Ernährungsrechner. Der Nutzer beschreibt auf Deutsch, was er gegessen oder getrunken hat – als Text, als Foto der Mahlzeit oder beides. "+
+"Bei einem Foto: Erkenne die abgebildeten Lebensmittel und schätze die Portionsgrößen anhand des Bildes. "+
+"Zerlege alles in einzelne Bestandteile und schätze für jeden realistisch: Kalorien (kcal), Protein, Kohlenhydrate und Fett in Gramm. "+
+"Wenn keine Menge erkennbar oder angegeben ist, gehe von üblichen deutschen Portionsgrößen aus und nenne die angenommene Menge im Feld 'menge' (z. B. '1 Scheibe, ca. 50 g'). "+
 "Schätze lieber leicht konservativ als stark über- oder untertrieben.";
 
-function estimateFood(text,cb){
+function shrinkPhoto(file,cb){
+  var rd=new FileReader();
+  rd.onload=function(){
+    var img=new Image();
+    img.onload=function(){
+      var max=1100,sc=Math.min(1,max/Math.max(img.width,img.height));
+      var c=document.createElement("canvas");
+      c.width=Math.round(img.width*sc);c.height=Math.round(img.height*sc);
+      c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+      cb(c.toDataURL("image/jpeg",0.82).split(",")[1]);
+    };
+    img.onerror=function(){cb(null);};
+    img.src=rd.result;
+  };
+  rd.onerror=function(){cb(null);};
+  rd.readAsDataURL(file);
+}
+
+function estimateFood(text,photo,cb){
   if(!CFG.apiKey){cb({error:"no-key"});return;}
+  var content;
+  if(photo){
+    content=[{type:"image",source:{type:"base64",media_type:"image/jpeg",data:photo}},
+             {type:"text",text:text||"Schätze die Nährwerte der abgebildeten Mahlzeit."}];
+  }else{
+    content=text;
+  }
   fetch(API_URL,{
     method:"POST",
     headers:{
@@ -329,7 +359,7 @@ function estimateFood(text,cb){
       max_tokens:2000,
       system:FOOD_SYSTEM,
       output_config:{format:{type:"json_schema",schema:FOOD_SCHEMA}},
-      messages:[{role:"user",content:text}]
+      messages:[{role:"user",content:content}]
     })
   }).then(function(r){return r.json();}).then(function(res){
     if(res.type==="error"){cb({error:(res.error&&res.error.message)||"API-Fehler"});return;}
@@ -347,6 +377,122 @@ function itemTotals(items){
   (items||[]).forEach(function(i){t.kcal+=i.kcal||0;t.protein+=i.protein_g||0;t.carbs+=i.kohlenhydrate_g||0;t.fat+=i.fett_g||0;});
   Object.keys(t).forEach(function(k){t[k]=Math.round(t[k]);});
   return t;
+}
+
+// ── KI-Wochen-Rückblick ───────────────────────────────────────────────────────
+var REVIEW_SCHEMA={
+  type:"object",
+  properties:{gut:{type:"string"},auffaellig:{type:"string"},tipp:{type:"string"}},
+  required:["gut","auffaellig","tipp"],
+  additionalProperties:false
+};
+var REVIEW_SYSTEM="Du bist ein freundlicher, sachlicher Ernährungs- und Trainings-Coach. "+
+"Du bekommst die Tracking-Daten der letzten 7 Tage (Kalorien, Nährwerte, Sport, Gewicht, Ziele). "+
+"Antworte knapp auf Deutsch und duze: 'gut' = 1–2 Sätze, was diese Woche gut lief; "+
+"'auffaellig' = 1–2 Sätze, was auffällt oder verbesserbar ist; "+
+"'tipp' = ein einziger konkreter, sofort umsetzbarer Tipp für die kommende Woche. "+
+"Keine Floskeln, keine Aufzählungen, keine medizinischen Diagnosen.";
+
+function weekReviewText(){
+  var lines=[];
+  for(var i=6;i>=0;i--){
+    var ds=addDays(todayIso(),-i), s=daySummary(ds);
+    if(!s.hasEntries){lines.push(fmtDe(ds,{weekday:"short"})+" "+fmtShort(ds)+": nicht getrackt");continue;}
+    var sport=dayEntry(ds).sport.map(function(x){
+      var sp=SPORTS.filter(function(y){return y.id===x.type;})[0]||{name:x.type};
+      return x.minutes+" min "+sp.name+" ("+(x.kcal||0)+" kcal)";
+    }).join(", ")||"kein Sport";
+    lines.push(fmtDe(ds,{weekday:"short"})+" "+fmtShort(ds)+": "+s.eaten+" kcal gegessen (P "+s.protein+" / K "+s.carbs+" / F "+s.fat+" g), "+sport+
+      (s.balance!=null&&s.eaten>0?", Bilanz "+(s.balance>0?"+":"")+s.balance+" kcal":""));
+  }
+  var lw=latestWeight(), ti=trendInfo();
+  var extra=[];
+  if(lw)extra.push("Aktuelles Gewicht: "+lw.kg+" kg");
+  if(ti)extra.push("Gewichtstrend: "+(ti.slope*7>=0?"+":"")+(ti.slope*7).toFixed(2)+" kg/Woche");
+  if(CFG.goalWeight)extra.push("Zielgewicht: "+CFG.goalWeight+" kg");
+  if(CFG.kcalTarget)extra.push("Tägliches Kalorienziel: "+CFG.kcalTarget+" kcal");
+  return "Daten der letzten 7 Tage:\n"+lines.join("\n")+(extra.length?"\n\n"+extra.join(" · "):"");
+}
+function runWeekReview(){
+  STATE.review={busy:true};render();
+  fetch(API_URL,{
+    method:"POST",
+    headers:{
+      "content-type":"application/json",
+      "x-api-key":CFG.apiKey,
+      "anthropic-version":"2023-06-01",
+      "anthropic-dangerous-direct-browser-access":"true"
+    },
+    body:JSON.stringify({
+      model:MODEL,
+      max_tokens:1000,
+      system:REVIEW_SYSTEM,
+      output_config:{format:{type:"json_schema",schema:REVIEW_SCHEMA}},
+      messages:[{role:"user",content:weekReviewText()}]
+    })
+  }).then(function(r){return r.json();}).then(function(res){
+    if(res.type==="error"){STATE.review={error:(res.error&&res.error.message)||"API-Fehler"};render();return;}
+    var tb=(res.content||[]).filter(function(b){return b.type==="text";})[0];
+    try{STATE.review={result:JSON.parse(tb.text)};}
+    catch(e){STATE.review={error:"Antwort konnte nicht gelesen werden"};}
+    render();
+  }).catch(function(e){STATE.review={error:"Netzwerkfehler: "+e.message};render();});
+}
+
+// ── Trainingsplan-Verknüpfung (liest die Halbmarathon-App im selben Browser) ──
+var HM_LS="hm-data", HM_START=new Date(2026,4,4);
+var HM_PHASES=[{id:1,wStart:1,wEnd:12},{id:2,wStart:13,wEnd:24},{id:3,wStart:25,wEnd:36},{id:4,wStart:37,wEnd:46},{id:5,wStart:47,wEnd:49}];
+function hmLerp(a,b,t){return Math.round(a+(b-a)*Math.max(0,Math.min(1,t)));}
+function hmPh(w){return HM_PHASES.filter(function(p){return w>=p.wStart&&w<=p.wEnd;})[0]||HM_PHASES[4];}
+function hmRow(w,t){return [
+  {id:"w"+w+"-r1",type:"rowing",title:"Rudern – Ausdauer",mins:hmLerp(20,45,t)},
+  {id:"w"+w+"-r2",type:"rowing",title:"Rudern – Intervall",mins:hmLerp(20,40,t)},
+];}
+function hmGen(w){
+  var ph=hmPh(w),t=(w-ph.wStart)/Math.max(ph.wEnd-ph.wStart,1);
+  if(ph.id===1)return [{id:"w"+w+"-1",type:"easy",title:"Lockerlauf + Beckenboden",mins:hmLerp(25,35,t)},
+    {id:"w"+w+"-2",type:"strength",title:"Lauf + Kräftigung",mins:hmLerp(25,30,t)+20}].concat(hmRow(w,t));
+  if(ph.id===2){var lm=hmLerp(40,70,t);return [{id:"w"+w+"-1",type:"easy",title:"Lockerlauf",mins:hmLerp(35,40,t)},
+    {id:"w"+w+"-2",type:"strength",title:"Lauf + Kraft",mins:hmLerp(30,35,t)},
+    {id:"w"+w+"-3",type:"long",title:"Langer Lauf",mins:lm}].concat(hmRow(w,t));}
+  if(ph.id===3){var lm3=hmLerp(60,90,t);
+    return [{id:"w"+w+"-1",type:"easy",title:"Lockerlauf",mins:hmLerp(40,45,t)},
+      {id:"w"+w+"-2",type:"tempo",title:"Tempolauf",mins:t<0.5?44:60},
+      {id:"w"+w+"-3",type:"long",title:"Langer Lauf",mins:lm3},
+      {id:"w"+w+"-4",type:"recovery",title:"Regeneration (opt.)",mins:30,optional:true}].concat(hmRow(w,t));}
+  if(ph.id===4){var km4=hmLerp(14,19,t);return [{id:"w"+w+"-1",type:"easy",title:"Lockerlauf",mins:40},
+    {id:"w"+w+"-2",type:"tempo",title:"Renntempo",mins:hmLerp(25,35,t)+20},
+    {id:"w"+w+"-3",type:"long",title:"Langer Lauf",mins:Math.round(km4*5.5)},
+    {id:"w"+w+"-4",type:"recovery",title:"Regenerationslauf",mins:30}].concat(hmRow(w,t));}
+  if(w===49)return [{id:"w49-1",type:"easy",title:"Leichte Aktivierung",mins:20},
+    {id:"w49-race",type:"race",title:"Halbmarathon",mins:105}];
+  var tp=w===47?0:0.5;
+  return [{id:"w"+w+"-1",type:"easy",title:"Lockerlauf",mins:hmLerp(35,25,tp)},
+    {id:"w"+w+"-2",type:"tempo",title:"Kurzes Tempotraining",mins:hmLerp(30,20,tp)},
+    {id:"w"+w+"-3",type:"easy",title:"Lockerlauf",mins:hmLerp(30,20,tp)},
+    {id:"w"+w+"-r1",type:"rowing",title:"Rudern – locker",mins:20}];
+}
+function hmSportMap(t){return t==="rowing"?"rowing":t==="strength"?"strength":"running";}
+function hmIntensity(t){return t==="tempo"||t==="race"?2:t==="recovery"?0:1;}
+function planSuggestions(){
+  if(STATE.date!==todayIso())return [];
+  var hm=lsGet(HM_LS,null);
+  if(!hm)return [];
+  var w=Math.floor((new Date()-HM_START)/(7*86400000))+1;
+  if(w<1||w>49)return [];
+  var d=dayEntry(STATE.date);
+  return hmGen(w).filter(function(s){
+    return !s.optional&&s.type!=="race"
+      &&!(hm[s.id]&&hm[s.id].done)
+      &&!d.sport.some(function(x){return x.planId===s.id;});
+  }).slice(0,2);
+}
+function planMarkDone(id){
+  var hm=lsGet(HM_LS,null);
+  if(!hm)return;
+  if(!hm[id])hm[id]={};
+  hm[id].done=true;
+  lsSet(HM_LS,hm);
 }
 
 // ── Calculations ──────────────────────────────────────────────────────────────
@@ -531,6 +677,13 @@ function renderToday(){
       '<div class="sub">'+s.minutes+' min · '+INTENSITIES[s.intensity||1]+(s.kcalManual?' · manuell':'')+'</div></div></div>'+
       '<div class="kcal">'+(s.kcal||0)+' kcal</div></div>';
   });
+  planSuggestions().forEach(function(s){
+    h+='<div class="entry" data-act="plan-adopt" data-pid="'+s.id+'" data-sport="'+hmSportMap(s.type)+'" data-min="'+s.mins+'" data-int="'+hmIntensity(s.type)+'" data-title="'+esc(s.title)+'">'+
+      '<div class="entry-left"><div class="entry-ic" style="background:transparent;border:1.5px dashed var(--acc)">'+sportIcon(hmSportMap(s.type))+'</div>'+
+      '<div style="min-width:0"><div class="t">'+esc(s.title)+'</div>'+
+      '<div class="sub">Trainingsplan · ~'+s.mins+' min</div></div></div>'+
+      '<div class="kcal" style="color:var(--acc);font-weight:550">übernehmen ›</div></div>';
+  });
   h+='<div class="entry add-row" data-act="add-sport"><div class="t">+ Aktivität hinzufügen</div></div></div>';
   return h;
 }
@@ -670,6 +823,26 @@ function renderStats(){
   if(!tracked.length){
     h+='<div class="card">'+emptyState(ICONS.chartEmpty,"Noch keine Einträge","Trage Essen oder Sport im Tab „Heute“ ein – hier erscheint dann deine Auswertung.")+'</div>';
   }
+
+  // KI-Wochen-Rückblick
+  h+='<div class="section-label">'+ICONS.ai+'KI-Wochen-Rückblick</div><div class="card">';
+  var rv=STATE.review;
+  if(!CFG.apiKey){
+    h+='<div class="hint">Hinterlege deinen API-Key unter „Mehr“, um dir deine Woche von der KI zusammenfassen zu lassen.</div>';
+  }else if(rv&&rv.busy){
+    h+='<div class="hint" style="display:flex;align-items:center;gap:10px"><span class="spin" style="border-color:var(--acc);border-top-color:transparent"></span>Analysiere deine Woche…</div>';
+  }else if(rv&&rv.result){
+    h+='<div style="font-size:14px;line-height:1.55">'+
+      '<div style="margin-bottom:12px"><div style="font-size:12px;font-weight:600;color:var(--acc);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px">Gut gelaufen</div>'+esc(rv.result.gut)+'</div>'+
+      '<div style="margin-bottom:12px"><div style="font-size:12px;font-weight:600;color:var(--acc);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px">Auffällig</div>'+esc(rv.result.auffaellig)+'</div>'+
+      '<div><div style="font-size:12px;font-weight:600;color:var(--acc);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px">Tipp für nächste Woche</div>'+esc(rv.result.tipp)+'</div></div>'+
+      '<button class="btn btn-ghost" data-act="week-review" style="margin-top:12px;padding-left:0">Neu analysieren</button>';
+  }else{
+    if(rv&&rv.error)h+='<div class="err" style="margin:0 0 10px">'+esc(rv.error)+'</div>';
+    else h+='<div class="hint" style="margin-bottom:12px">Die KI schaut auf deine letzten 7 Tage und gibt dir eine kurze Einschätzung plus einen konkreten Tipp.</div>';
+    h+='<button class="btn btn-primary" data-act="week-review">Meine Woche analysieren</button>';
+  }
+  h+='</div>';
   return h;
 }
 function balanceChart(sums){
@@ -766,8 +939,18 @@ function renderModal(){
 }
 function mealName(id){return (MEALS.filter(function(x){return x[0]===id;})[0]||["",""])[1];}
 function modalAddMeal(m){
-  var h='<h2>'+MEAL_ICON[m.meal]+mealName(m.meal)+'</h2><div class="sub">Beschreibe frei, was du gegessen hast – die KI schätzt die Kalorien.</div>';
+  var h='<h2>'+MEAL_ICON[m.meal]+mealName(m.meal)+'</h2><div class="sub">Beschreibe frei, was du gegessen hast, oder mach ein Foto – die KI schätzt die Kalorien.</div>';
   h+='<div class="field-label">Was hast du gegessen?</div><textarea id="mealText" placeholder="z. B. 2 Brötchen mit Butter und Käse, ein Apfel, Cappuccino mit Hafermilch">'+esc(m.text||"")+'</textarea>';
+  h+='<input type="file" id="mealPhoto" accept="image/*" capture="environment" style="display:none">';
+  if(m.photo){
+    h+='<div style="display:flex;align-items:center;gap:12px;margin-top:12px">'+
+      '<img src="data:image/jpeg;base64,'+m.photo+'" alt="Foto der Mahlzeit" style="width:64px;height:64px;object-fit:cover;border-radius:12px;border:1px solid var(--border)">'+
+      '<div style="min-width:0;flex:1"><div style="font-size:13px;font-weight:550">Foto angehängt</div><div class="hint">Wird zur Schätzung mitgeschickt.</div></div>'+
+      '<button class="btn btn-ghost" data-act="photo-remove" style="color:var(--div-pos);flex-shrink:0">Entfernen</button></div>';
+  }else{
+    h+='<button class="btn" data-act="photo-pick" style="margin-top:12px;color:var(--acc)">'+ICONS.camera+'Foto aufnehmen</button>';
+  }
+  if(m.photoBusy)h+='<div class="hint" style="margin-top:8px">Foto wird verarbeitet…</div>';
   if(DATA.favorites.length){
     h+='<div class="field-label">Favoriten</div><div>'+DATA.favorites.map(function(f){
       return '<button class="fav-chip" data-act="use-fav" data-id="'+f.id+'">'+esc(f.text.length>34?f.text.slice(0,32)+"…":f.text)+' · '+f.kcal+' kcal</button>';
@@ -821,6 +1004,7 @@ function modalSport(m){
   h+='<div class="field-label">Kalorien'+(auto!=null?' <span style="color:var(--muted)">(automatisch: ~'+auto+' kcal)</span>':'')+'</div>'+
      '<input type="number" id="spKcal" inputmode="numeric" value="'+esc(manual)+'" placeholder="'+(auto!=null?auto+" (automatisch)":"automatisch")+'">'+
      '<div class="hint" style="margin-top:6px">Leer lassen für automatische Schätzung – oder Wert der Sportuhr eintragen.</div>';
+  if(m.planId)h+='<div class="hint" style="margin-top:10px;color:var(--acc)">Aus dem Trainingsplan: „'+esc(m.planTitle||"")+'“ – wird beim Speichern auch dort abgehakt.</div>';
   h+='<div style="display:flex;gap:10px;margin-top:18px">'+
     (isEdit?'<button class="btn" data-act="delete-sport" data-id="'+e.id+'" style="color:var(--div-pos)">Löschen</button>':'')+
     '<button class="btn btn-primary" data-act="save-sport" style="flex:1"'+(isEdit?' data-id="'+e.id+'"':'')+'>Speichern</button></div>';
@@ -845,7 +1029,11 @@ function findSport(id){var d=dayEntry(STATE.date);return d.sport.filter(function
 
 function addMealEntry(mealType,text,est){
   var d=ensureDay(STATE.date);
-  var e={id:uid(),mealType:mealType,text:text,pending:!est};
+  if(!text&&est&&est.items&&est.items.length){
+    text=est.items.map(function(i){return i.name;}).slice(0,3).join(", ");
+    if(est.items.length>3)text+=" …";
+  }
+  var e={id:uid(),mealType:mealType,text:text||"Mahlzeit",pending:!est};
   if(est){var t=itemTotals(est.items);e.items=est.items;e.kcal=t.kcal;e.protein=t.protein;e.carbs=t.carbs;e.fat=t.fat;}
   d.meals.push(e);saveData();
 }
@@ -875,6 +1063,20 @@ function bind(){
   app.querySelectorAll("[data-act]").forEach(function(el){
     el.onclick=function(ev){handleAction(el,ev);};
   });
+  var ph=document.getElementById("mealPhoto");
+  if(ph)ph.onchange=function(){
+    var f=ph.files&&ph.files[0];
+    if(!f||!STATE.modal)return;
+    STATE.modal.text=document.getElementById("mealText").value;
+    STATE.modal.photoBusy=true;render();
+    shrinkPhoto(f,function(b64){
+      if(!STATE.modal)return;
+      STATE.modal.photoBusy=false;
+      if(b64)STATE.modal.photo=b64;
+      else STATE.modal.error="Foto konnte nicht gelesen werden.";
+      render();
+    });
+  };
 }
 function closeModal(){STATE.modal=null;render();}
 
@@ -905,13 +1107,22 @@ function handleAction(el,ev){
     if(!txt)return;
     addMealEntry(STATE.modal.meal,txt,null);closeModal();return;
   }
+  if(act==="photo-pick"){
+    if(STATE.modal)STATE.modal.text=document.getElementById("mealText").value;
+    document.getElementById("mealPhoto").click();return;
+  }
+  if(act==="photo-remove"){
+    if(STATE.modal){STATE.modal.text=document.getElementById("mealText").value;STATE.modal.photo=null;render();}
+    return;
+  }
   if(act==="save-meal-ai"){
     var txt2=document.getElementById("mealText").value.trim();
-    if(!txt2)return;
+    var photo=STATE.modal.photo||null;
+    if(!txt2&&!photo)return;
     if(!CFG.apiKey){STATE.modal.error="no-key";STATE.modal.text=txt2;render();return;}
     STATE.modal.busy=true;STATE.modal.error=null;STATE.modal.text=txt2;render();
     var mealType=STATE.modal.meal;
-    estimateFood(txt2,function(res){
+    estimateFood(txt2,photo,function(res){
       if(res.error){if(STATE.modal){STATE.modal.busy=false;STATE.modal.error=res.error;render();}return;}
       addMealEntry(mealType,txt2,res);closeModal();
     });
@@ -932,7 +1143,7 @@ function handleAction(el,ev){
     var e2=findMeal(el.dataset.id);
     if(!e2)return;
     STATE.modal.busy=true;render();
-    estimateFood(e2.text,function(res){
+    estimateFood(e2.text,null,function(res){
       if(res.error){if(STATE.modal){STATE.modal.busy=false;render();}return;}
       var t=itemTotals(res.items);
       e2.items=res.items;e2.kcal=t.kcal;e2.protein=t.protein;e2.carbs=t.carbs;e2.fat=t.fat;e2.pending=false;
@@ -954,6 +1165,12 @@ function handleAction(el,ev){
   }
   // ── sport
   if(act==="add-sport"){STATE.modal={type:"add-sport"};render();return;}
+  if(act==="plan-adopt"){
+    STATE.modal={type:"add-sport",sport:el.dataset.sport,minutes:el.dataset.min,intensity:+el.dataset.int,
+                 planId:el.dataset.pid,planTitle:el.dataset.title};
+    render();return;
+  }
+  if(act==="week-review"){if(CFG.apiKey&&!(STATE.review&&STATE.review.busy))runWeekReview();return;}
   if(act==="open-sport"){STATE.modal={type:"sport-detail",id:el.dataset.id};render();return;}
   if(act==="sp-int"){
     STATE.modal.sport=document.getElementById("spType").value;
@@ -974,6 +1191,7 @@ function handleAction(el,ev){
     entry.type=type;entry.minutes=mins;entry.intensity=inten;
     if(manualV){entry.kcal=+manualV;entry.kcalManual=true;}
     else{entry.kcal=sportKcal(type,mins,inten,w&&w.kg);entry.kcalManual=false;}
+    if(STATE.modal.planId){entry.planId=STATE.modal.planId;planMarkDone(STATE.modal.planId);}
     saveData();closeModal();return;
   }
   if(act==="delete-sport"){
