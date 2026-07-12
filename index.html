@@ -18,7 +18,8 @@
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html{scroll-behavior:smooth}
-body{background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;min-height:100vh;padding-bottom:calc(96px + env(safe-area-inset-bottom))}
+html,body{overflow-x:hidden;max-width:100vw}
+body{background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;font-size:14px;min-height:100vh;padding-bottom:calc(84px + env(safe-area-inset-bottom))}
 button{font-family:inherit;cursor:pointer;color:inherit}
 input{font-family:inherit}
 .num,.disp{font-family:"Sora",system-ui,sans-serif}
@@ -26,34 +27,34 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--acc);outline-of
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 
 /* Cards & basics */
-.card{background:var(--sur);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:12px}
-.card.flat{padding:12px 14px}
+.card{background:var(--sur);border:1px solid var(--line);border-radius:var(--r);padding:13px;margin-bottom:10px}
+.card.flat{padding:10px 12px}
 .lbl{font-size:11px;color:var(--mut);letter-spacing:.4px;text-transform:uppercase;font-weight:600}
 .chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;border-radius:999px;padding:3px 10px;border:1px solid var(--line);color:var(--mut);background:var(--sur2)}
 .zchip{font-size:10.5px;font-weight:700;border-radius:6px;padding:2px 7px;letter-spacing:.2px}
-input[type=text],input[type=number],input[type=date]{width:100%;padding:12px 13px;background:var(--sur2);border:1px solid var(--line);border-radius:var(--rs);color:var(--tx);font-size:15px;outline:none;transition:border-color .15s}
+input[type=text],input[type=number],input[type=date]{width:100%;padding:10px 12px;background:var(--sur2);border:1px solid var(--line);border-radius:var(--rs);color:var(--tx);font-size:15px;outline:none;transition:border-color .15s}
 input:focus{border-color:var(--acc)}
 
 /* Header */
-.hdr{position:sticky;top:0;z-index:60;background:rgba(10,14,23,.82);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-bottom:1px solid var(--line);padding:calc(10px + env(safe-area-inset-top)) 16px 10px}
+.hdr{position:sticky;top:0;z-index:60;background:rgba(10,14,23,.82);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-bottom:1px solid var(--line);padding:calc(8px + env(safe-area-inset-top)) 14px 8px}
 .hdr-in{max-width:520px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:10px}
 
 /* Bottom Nav */
-.nav{position:fixed;left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom));z-index:70;display:flex;background:rgba(18,25,39,.86);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--line2);border-radius:22px;padding:6px;max-width:520px;margin:0 auto;box-shadow:0 10px 30px rgba(0,0,0,.45)}
-.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 0 6px;border:none;background:none;border-radius:16px;color:var(--dim);font-size:10px;font-weight:600;transition:background .15s,color .15s}
-.nav-btn .ic{font-size:19px;line-height:1;filter:grayscale(1) opacity(.7)}
+.nav{position:fixed;left:10px;right:10px;bottom:calc(8px + env(safe-area-inset-bottom));z-index:70;display:flex;background:rgba(18,25,39,.88);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--line2);border-radius:20px;padding:5px;max-width:520px;margin:0 auto;box-shadow:0 10px 30px rgba(0,0,0,.45)}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;padding:6px 0 5px;border:none;background:none;border-radius:14px;color:var(--dim);font-size:9.5px;font-weight:600;transition:background .15s,color .15s}
+.nav-btn .ic{font-size:17px;line-height:1;filter:grayscale(1) opacity(.7)}
 .nav-btn.active{color:var(--acc);background:rgba(255,122,60,.12)}
 .nav-btn.active .ic{filter:none}
 
 /* Hero (Heute) */
-.hero{position:relative;overflow:hidden;background:radial-gradient(120% 140% at 85% -20%,rgba(255,122,60,.22),rgba(255,178,94,.05) 45%,transparent 70%),var(--sur);border:1px solid var(--line2);border-radius:20px;padding:18px;margin-bottom:12px}
-.ring{position:relative;width:74px;height:74px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.ring::after{content:"";position:absolute;inset:6px;background:var(--sur);border-radius:50%}
-.ring span{position:relative;z-index:1;font-weight:800;font-size:16px}
+.hero{position:relative;overflow:hidden;background:radial-gradient(120% 140% at 85% -20%,rgba(255,122,60,.22),rgba(255,178,94,.05) 45%,transparent 70%),var(--sur);border:1px solid var(--line2);border-radius:18px;padding:14px;margin-bottom:10px}
+.ring{position:relative;width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ring::after{content:"";position:absolute;inset:5px;background:var(--sur);border-radius:50%}
+.ring span{position:relative;z-index:1;font-weight:800;font-size:13px}
 .coach{border-left:3px solid var(--acc);background:var(--sur2);border-radius:0 var(--rs) var(--rs) 0;padding:10px 12px;font-size:13px;color:var(--mut);line-height:1.55}
 
 /* Sessions */
-.ses{background:var(--sur);border:1px solid var(--line);border-radius:var(--r);padding:14px;margin-bottom:10px}
+.ses{background:var(--sur);border:1px solid var(--line);border-radius:var(--r);padding:12px;margin-bottom:9px}
 .check-btn{width:26px;height:26px;border-radius:9px;flex-shrink:0;border:2px solid var(--line2);background:transparent;display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff;transition:transform .12s,background .15s,border-color .15s}
 .check-btn:active{transform:scale(.85)}
 .wu{display:flex;gap:9px;padding:7px 0;border-bottom:1px dashed var(--line);font-size:12.5px;color:var(--mut);line-height:1.5}
@@ -93,13 +94,19 @@ input:focus{border-color:var(--acc)}
 .mood-btn{flex:1;font-size:22px;padding:9px 0;border-radius:12px;border:2px solid var(--line);background:none}
 .mood-btn.selected{border-color:var(--acc);background:rgba(255,122,60,.14)}
 input[type=range]{width:100%;accent-color:var(--acc);height:30px}
-.btn{width:100%;padding:14px;border-radius:13px;border:none;background:var(--grad);color:#1A0D04;font-size:15px;font-weight:800}
+.btn{width:100%;padding:12px;border-radius:13px;border:none;background:var(--grad);color:#1A0D04;font-size:15px;font-weight:800}
 .btn.ghost{background:none;border:1px solid var(--line);color:var(--mut);font-weight:600}
 .btn:active{transform:scale(.985)}
 
 @keyframes fall{0%{transform:translateY(0) rotate(0);opacity:1}100%{transform:translateY(110vh) rotate(720deg);opacity:0}}
 .confetti-msg{position:fixed;top:36%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;z-index:999}
 
+@media(max-width:370px){
+  .disp{letter-spacing:-.2px}
+  .badge-grid{grid-template-columns:1fr 1fr}
+  .mood-btn{font-size:19px;padding:7px 0}
+  .chip{padding:2px 8px;font-size:10px}
+}
 @media(min-width:880px){
   body{padding-bottom:24px}
   .nav{display:none}
@@ -116,12 +123,14 @@ input[type=range]{width:100%;accent-color:var(--acc);height:30px}
 <div id="app"></div>
 <script>
 // ── Config ──────────────────────────────────────────────────────────────────
-var PLAN_START = new Date(2026,4,4);
+var PLAN_START = new Date(2026,6,13);   // Trainingsstart: Mo, 13. Juli 2026
 var RACE_DATE  = new Date(2027,3,11);
-var NEW_FROM   = 11;                    // neue Coach-Struktur ab Woche 11
+var WEEKS      = 39;                    // 39 Wochen bis zum Rennen
+var NEW_FROM   = 1;                     // Coach-Struktur ab Woche 1
+var RESET_KEY  = "reset-2026-07-13";    // einmaliger Neustart-Marker
 var LS_DATA="hm-data", LS_CFG="hm-cfg", TABLE="hm_training", LS_WEIGHT="hm-weight", LS_STEPS="hm-steps";
 var SB_URL="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js";
-var TESTS={12:3,20:5,28:5,36:5,44:5};   // Testlauf-Wochen → Distanz km
+var TESTS={8:3,14:5,20:5,26:5,32:5};    // Testlauf-Wochen → Distanz km
 var DAYN=["Mo","Di","Mi","Do","Fr","Sa","So"];
 
 var PC={1:"#60A5FA",2:"#34D399",3:"#FBBF24",4:"#F87171",5:"#C084FC"};
@@ -131,11 +140,11 @@ var MOODS=["😫","😕","😊","💪","🚀"];
 var ZC=["#94A3B8","#38BDF8","#34D399","#FBBF24","#F87171"]; // Z1–Z5
 
 var PHASES=[
-  {id:1,name:"Fundament",wStart:1,wEnd:12},
-  {id:2,name:"Basis",wStart:13,wEnd:24},
-  {id:3,name:"Qualität",wStart:25,wEnd:36},
-  {id:4,name:"Race Prep",wStart:37,wEnd:46},
-  {id:5,name:"Tapering",wStart:47,wEnd:49},
+  {id:1,name:"Fundament",wStart:1,wEnd:10},
+  {id:2,name:"Basis",wStart:11,wEnd:18},
+  {id:3,name:"Qualität",wStart:19,wEnd:28},
+  {id:4,name:"Race Prep",wStart:29,wEnd:36},
+  {id:5,name:"Tapering",wStart:37,wEnd:39},
 ];
 
 // ── Kraft-Workouts ────────────────────────────────────────────────────────────
@@ -188,7 +197,7 @@ var BADGES=RUN_BADGES.concat(ROW_BADGES).concat(KRAFT_BADGES);
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function getPh(w){return PHASES.find(function(p){return w>=p.wStart&&w<=p.wEnd;})||PHASES[4];}
 function lerp(a,b,t){return Math.round(a+(b-a)*Math.max(0,Math.min(1,t)));}
-function getCurWeek(){var ms=new Date().getTime()-PLAN_START.getTime();return Math.max(1,Math.min(49,Math.floor(ms/(7*24*3600*1000))+1));}
+function getCurWeek(){var ms=new Date().getTime()-PLAN_START.getTime();return Math.max(1,Math.min(WEEKS,Math.floor(ms/(7*24*3600*1000))+1));}
 function daysLeft(){return Math.max(0,Math.ceil((RACE_DATE.getTime()-new Date().getTime())/(24*3600*1000)));}
 function wkRange(w){
   var s=new Date(PLAN_START);s.setDate(s.getDate()+(w-1)*7);
@@ -259,19 +268,7 @@ function paces(){
   return {tempo:"4:58",easy:"6:30–7:00",long:"6:00–6:30",src:"default"};
 }
 
-// ── Sessions: Legacy (W1–10) ─────────────────────────────────────────────────
-function rowSesLegacy(w,t){return [
-  {id:"w"+w+"-r1",type:"rowing",title:"Rudern – Ausdauer",desc:lerp(20,45,t)+" Min gleichmäßig · Technik & Grundlage · schont Beckenboden"},
-  {id:"w"+w+"-r2",type:"rowing",title:"Rudern – Intervall",desc:"5 Min Einfahren · "+lerp(3,8,t)+"×2 Min zügig · 1 Min Pause · Ausfahren (~"+lerp(20,40,t)+" Min)"},
-];}
-function genSesLegacy(w){
-  var ph=getPh(w),t=(w-ph.wStart)/Math.max(ph.wEnd-ph.wStart,1);
-  return [{id:"w"+w+"-1",type:"easy",title:"Lockerlauf + Beckenboden",desc:lerp(25,35,t)+" Min Wohlfühltempo · Beckenboden-Aktivierung (10 Min)",min:lerp(25,35,t)},
-    {id:"w"+w+"-2",type:"strength",title:"Lauf + Kräftigung",desc:lerp(25,30,t)+" Min locker · Core, Gesäß & Hüfte (20 Min)",min:lerp(45,50,t)}]
-    .concat(rowSesLegacy(w,t).map(function(s){s.min=30;return s;}));
-}
-
-// ── Sessions: Coach-Struktur (ab W11) ────────────────────────────────────────
+// ── Sessions: Coach-Struktur ──────────────────────────────────────────────────
 function adjOf(w){return STATE.data["adj:w"+w]||null;}
 function genSesNew(w){
   var ph=getPh(w),t=(w-ph.wStart)/Math.max(ph.wEnd-ph.wStart,1);
@@ -293,7 +290,7 @@ function genSesNew(w){
   }
   var testKm=TESTS[w];
   // ── Woche 49: Race Week ──
-  if(w===49){
+  if(w===WEEKS){
     add("1",1,"easy","Aktivierung","20 Min sehr locker "+"· 4×20 Sek flotte Steigerungen · Beine frisch halten",20,[1,2]);
     add("2",3,"recovery","Lockerer Spaziergang / Mobilität","20–30 Min · Beine lockern · früh schlafen",25,1,true);
     add("race",6,"race","🏅 HALBMARATHON!","11. April 2027 · Zieltempo "+P.tempo+"/km · Erste 5 km bewusst ruhig – du hast das trainiert!",105,[3,4]);
@@ -301,9 +298,9 @@ function genSesNew(w){
   }
   // ── Tapering 47–48 ──
   if(ph.id===5){
-    var tp=w===47?0:1;
-    if(w===47)kraft("k1",0,"A");
-    add("2",1,"tempo","Kurzes Tempo",dur(lerp(10,8,tp))+" Min Einlaufen · "+(w===47?"6":"4")+"×2 Min @ "+P.tempo+"/km · 2 Min Trabpause · 10 Min Auslaufen",dur(lerp(35,28,tp)),4);
+    var tp=w===37?0:1;
+    if(w===37)kraft("k1",0,"A");
+    add("2",1,"tempo","Kurzes Tempo",dur(lerp(10,8,tp))+" Min Einlaufen · "+(w===37?"6":"4")+"×2 Min @ "+P.tempo+"/km · 2 Min Trabpause · 10 Min Auslaufen",dur(lerp(35,28,tp)),4);
     add("r1",2,"rowing","Rudern – ganz locker",dur(20)+" Min ruhig · Schlagzahl 18–20 · nur Bewegung",20,1);
     add("3",3,"easy","Lockerlauf",dur(lerp(30,25,tp))+" Min sehr locker @ "+P.easy+"/km",dur(lerp(30,25,tp)),[1,2]);
     add("4",5,"easy","Lockerlauf",dur(lerp(40,30,tp))+" Min locker @ "+P.easy+"/km · Rennschuhe testen",dur(lerp(40,30,tp)),2);
@@ -313,11 +310,11 @@ function genSesNew(w){
   if(ph.id===1){
     kraft("k1",0,"A");
     if(testKm)add("t",1,"test",testKm+"-km-Testlauf","10 Min locker einlaufen · "+testKm+" km gleichmäßig zügig (anstrengend, aber durchhaltbar) · 10 Min auslaufen · Zeit + km eintragen!",40,[4,5]);
-    else add("1",1,"easy","Lockerlauf + Beckenboden",dur(35)+" Min Wohlfühltempo @ "+P.easy+"/km · vorher 10 Min Beckenboden-Aktivierung",dur(35),2);
-    add("r1",2,"rowing","Rudern – Steady",dur(30)+" Min gleichmäßig · Schlagzahl 20–22 · Gespräch möglich",dur(30),[2,3]);
+    else add("1",1,"easy","Lockerlauf + Beckenboden",dur(lerp(25,35,t))+" Min Wohlfühltempo @ "+P.easy+"/km · vorher 10 Min Beckenboden-Aktivierung",dur(lerp(25,35,t)),2);
+    add("r1",2,"rowing","Rudern – Steady",dur(lerp(25,35,t))+" Min gleichmäßig · Schlagzahl 20–22 · Gespräch möglich",dur(lerp(25,35,t)),[2,3]);
     kraft("k2",3,"B");
     add("r2",4,"rowing","Rudern – locker",dur(20)+" Min ruhig · Technik-Fokus: erst Beine, dann Arme",dur(20),[1,2],true);
-    add("2",5,"easy","Lockerlauf",dur(40)+" Min locker @ "+P.easy+"/km",dur(40),2);
+    add("2",5,"easy","Lockerlauf",dur(lerp(30,45,t))+" Min locker @ "+P.easy+"/km",dur(lerp(30,45,t)),2);
     return ses;
   }
   // ── Phase 2: Basis ──
@@ -358,8 +355,8 @@ function genSesNew(w){
   add("r2",6,"rowing","Rudern – locker",dur(20)+" Min ruhig · aktive Erholung",dur(20),1,true);
   return ses;
 }
-function genSes(w){return w<NEW_FROM?genSesLegacy(w):genSesNew(w);}
-function allSessions(){var a=[];for(var w=1;w<=49;w++)genSes(w).forEach(function(s){a.push(Object.assign({},s,{week:w}));});return a;}
+function genSes(w){return genSesNew(w);}
+function allSessions(){var a=[];for(var w=1;w<=WEEKS;w++)genSes(w).forEach(function(s){a.push(Object.assign({},s,{week:w}));});return a;}
 
 function calcStreak(data){
   var cur=getCurWeek(),streak=0;
@@ -417,7 +414,11 @@ function loadFromSupabase(){
   STATE.sbClient.from(TABLE).select("data").eq("user_id",STATE.cfg.userId).single()
     .then(function(res){
       if(!res.error&&res.data&&res.data.data&&Object.keys(res.data.data).length>0){
-        STATE.data=res.data.data;lsSet(LS_DATA,STATE.data);invalidateFit();
+        if(res.data.data[RESET_KEY]){ // Remote kennt den Neustart → übernehmen
+          STATE.data=res.data.data;lsSet(LS_DATA,STATE.data);invalidateFit();
+        } else { // Alte Daten in der Cloud → lokalen Neustart hochladen
+          syncToSupabase();
+        }
       }
       STATE.syncSt="ok";render();
     }).catch(function(){STATE.syncSt="error";render();});
@@ -481,7 +482,7 @@ function weekCompletion(w){
 // Einmal pro Woche: Anpassung berechnen & speichern (deterministisch)
 function ensureCoach(){
   var w=getCurWeek();
-  if(w<NEW_FROM||w>48)return;
+  if(w>=WEEKS)return;
   if(STATE.data["adj:w"+w])return;
   var ref=new Date(PLAN_START);ref.setDate(ref.getDate()+(w-1)*7); // Wochenstart
   var lr=loadRatio(ref);
@@ -601,7 +602,7 @@ function getDerived(){
   var earnedKB=KRAFT_BADGES.filter(function(b){return b.ok(STATE.data,doneSes,all,streak);});
   var earnedB=earnedRunB.concat(earnedRowB).concat(earnedKB);
   var runChart=[],rowChart=[];
-  for(var w=1;w<=49;w++){
+  for(var w=1;w<=WEEKS;w++){
     var ses=genSes(w);
     var runkm=ses.filter(function(s){return s.type!=="rowing";}).reduce(function(a,s){return a+parseFloat((STATE.data[s.id]&&STATE.data[s.id].km)||0);},0);
     var rowkm=ses.filter(function(s){return s.type==="rowing";}).reduce(function(a,s){return a+parseFloat((STATE.data[s.id]&&STATE.data[s.id].km)||0);},0);
@@ -721,21 +722,20 @@ function contextLine(w,di,todaySes,weekSes){
 }
 function hHeute(d){
   var w=getCurWeek(),di=todayIdx(),ses=genSes(w).map(function(s){s.week=w;return s;});
-  var todaySes=ses.filter(function(s){return s.day===di||(s.day==null&&false);});
-  if(w<NEW_FROM)todaySes=[]; // Legacy-Wochen haben keine Tageszuordnung
+  var todaySes=ses.filter(function(s){return s.day===di;});
   var req=ses.filter(function(s){return !s.optional&&s.type!=="race";});
   var dn=req.filter(function(s){return STATE.data[s.id]&&STATE.data[s.id].done;}).length;
   var wpct=req.length?Math.round(dn/req.length*100):0;
   var adj=adjOf(w),a=ampel(),f=fitness(),now=new Date();
   var greet=now.getHours()<11?"Guten Morgen":now.getHours()<18?"Hallo":"Guten Abend";
-  var html='<div style="padding:14px 16px;max-width:520px;margin:0 auto">';
+  var html='<div style="padding:12px 13px;max-width:520px;margin:0 auto">';
   // Hero
   html+='<div class="hero">';
-  html+='<div style="display:flex;align-items:center;gap:15px">';
+  html+='<div style="display:flex;align-items:center;gap:12px">';
   html+='<div class="ring" style="background:conic-gradient(#FF7A3C '+wpct*3.6+'deg,var(--line) 0deg)"><span class="num">'+dn+'/'+req.length+'</span></div>';
   html+='<div style="min-width:0">';
   html+='<div class="lbl">'+now.toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long"})+'</div>';
-  html+='<div class="disp" style="font-size:21px;font-weight:800;letter-spacing:-.4px;margin-top:2px">'+greet+', Jumana</div>';
+  html+='<div class="disp" style="font-size:18px;font-weight:800;letter-spacing:-.4px;margin-top:2px">'+greet+', Jumana</div>';
   html+='<div style="font-size:12px;color:var(--mut);margin-top:3px">Woche '+w+' · '+getPh(w).name+' · noch <b class="num" style="color:var(--acc2)">'+daysLeft()+'</b> Tage bis zum Rennen</div>';
   html+='</div></div>';
   if(adj&&adj.note)html+='<div class="coach" style="margin-top:14px"><b style="color:var(--acc2)">🧠 Dein Coach:</b> '+esc(adj.note)+'</div>';
@@ -747,13 +747,13 @@ function hHeute(d){
     var onTrack=cur<=goal;
     html+='<div class="card"><div style="display:flex;justify-content:space-between;align-items:baseline">';
     html+='<div><div class="lbl">Aktuelle Form (Halbmarathon-Prognose)</div>';
-    html+='<div class="num" style="font-size:26px;font-weight:800;margin-top:3px;color:'+(onTrack?"var(--ok)":"var(--tx)")+'">'+fmtTime(cur)+'</div></div>';
+    html+='<div class="num" style="font-size:22px;font-weight:800;margin-top:3px;color:'+(onTrack?"var(--ok)":"var(--tx)")+'">'+fmtTime(cur)+'</div></div>';
     html+='<div style="text-align:right"><div class="lbl">Ziel</div><div class="num" style="font-size:17px;font-weight:700;color:var(--acc2);margin-top:3px">1:45:00</div></div></div>';
     html+='<div style="height:6px;background:var(--line);border-radius:3px;margin-top:12px;overflow:hidden"><div style="height:100%;width:'+(onTrack?100:pr)+'%;background:var(--grad);border-radius:3px"></div></div>';
     html+='<div style="font-size:11px;color:var(--dim);margin-top:7px">Basis: '+(f.test?"Testlauf":"Lauf")+' Woche '+f.week+' ('+f.km+' km, Pace '+fmtPace(f.pace)+'/km) · Formel n. Riegel'+(onTrack?" · 🎯 Ziel in Reichweite!":"")+'</div>';
     html+='</div>';
   } else if(w>=NEW_FROM){
-    html+='<div class="card flat" style="font-size:12.5px;color:var(--mut);line-height:1.55">⏱️ In Woche 12 steht dein erster <b style="color:var(--tx)">Testlauf</b> an – danach berechne ich deine Trainings-Paces und eine Halbmarathon-Prognose automatisch.</div>';
+    html+='<div class="card flat" style="font-size:12.5px;color:var(--mut);line-height:1.55">⏱️ In Woche 8 steht dein erster <b style="color:var(--tx)">Testlauf</b> an – danach berechne ich deine Trainings-Paces und eine Halbmarathon-Prognose automatisch.</div>';
   }
   // Profil-Hinweis
   if(!hrZones()){
@@ -763,9 +763,7 @@ function hHeute(d){
   }
   // Heutige Einheiten
   html+='<div class="lbl" style="margin:16px 0 9px">Heute · '+DAYN[di]+'</div>';
-  if(w<NEW_FROM){
-    html+='<div class="card" style="font-size:13px;color:var(--mut);line-height:1.6">Diese Woche läuft noch nach dem bisherigen Plan (Tab „Plan"). <b style="color:var(--tx)">Ab Woche '+NEW_FROM+'</b> übernimmt der Coach: feste Wochentage, Kettlebell-Workouts, Ruder-Intervalle mit Zielzeiten und automatische Anpassung.</div>';
-  } else if(todaySes.length===0){
+  if(todaySes.length===0){
     html+='<div class="card" style="text-align:center;padding:26px 16px"><div style="font-size:34px;margin-bottom:6px">🌿</div><div style="font-weight:700;font-size:15px">Ruhetag</div><div style="font-size:12.5px;color:var(--mut);margin-top:4px;line-height:1.55">'+contextLine(w,di,todaySes,ses)+'</div></div>';
   } else {
     todaySes.forEach(function(s){html+=sesCard(s,true);});
@@ -777,7 +775,7 @@ function hHeute(d){
     html+='<div class="card flat" style="border-color:rgba(251,191,36,.35)"><div style="font-size:12.5px;color:var(--mut);line-height:1.55">📌 Noch offen diese Woche: '+missed.map(function(s){return "<b style='color:var(--tx)'>"+esc(s.title)+"</b>";}).join(", ")+'. Faustregel: Tempo & langer Lauf haben Vorrang – Lockeres darf ersatzlos ausfallen.</div></div>';
   }
   // Wochenfazit (sonntags)
-  if(di===6&&w>=NEW_FROM){
+  if(di===6&&w>=NEW_FROM&&dn>0){
     var doneAll=ses.filter(function(s){return STATE.data[s.id]&&STATE.data[s.id].done;});
     var kmRun=doneAll.filter(function(s){return s.type!=="rowing";}).reduce(function(a,s){return a+parseFloat((STATE.data[s.id]||{}).km||0);},0);
     var kmRow=doneAll.filter(function(s){return s.type==="rowing";}).reduce(function(a,s){return a+parseFloat((STATE.data[s.id]||{}).km||0);},0);
@@ -811,20 +809,20 @@ function hPlanPanel(){
   var now=new Date(),diff=RACE_DATE-now;
   var days=Math.floor(diff/86400000),hrs=Math.floor((diff%86400000)/3600000);
   var mins=Math.floor((diff%3600000)/60000),secs=Math.floor((diff%60000)/1000);
-  var html2='<div style="padding:14px 16px 0;max-width:520px;margin:0 auto">';
+  var html2='<div style="padding:12px 13px 0;max-width:520px;margin:0 auto">';
   html2+='<div class="card" style="background:radial-gradient(120% 160% at 80% -30%,rgba(255,122,60,.18),transparent 60%),var(--sur);text-align:center;border-color:rgba(255,122,60,.3)">';
   html2+='<div class="lbl" style="color:var(--acc)">🏁 Halbmarathon · 11. April 2027</div>';
   html2+='<div style="display:flex;justify-content:center;gap:8px;margin-top:10px">';
   [[days,"Tage"],[hrs,"Std."],[mins,"Min."],[secs,"Sek."]].forEach(function(x){
-    html2+='<div style="background:var(--bg);border-radius:12px;padding:9px 10px;min-width:56px">';
-    html2+='<div class="num" style="font-size:22px;font-weight:800;color:var(--acc2);line-height:1" data-countdown>'+x[0]+'</div>';
+    html2+='<div style="background:var(--bg);border-radius:12px;padding:7px 8px;min-width:44px">';
+    html2+='<div class="num" style="font-size:18px;font-weight:800;color:var(--acc2);line-height:1" data-countdown>'+x[0]+'</div>';
     html2+='<div style="font-size:9px;color:var(--dim);margin-top:3px">'+x[1]+'</div></div>';
   });
   html2+='</div></div>';
   html2+='<div class="seg"><button data-view="list" class="'+(STATE.planView==="list"?"active":"")+'">📋 Liste</button><button data-view="cal" class="'+(STATE.planView==="cal"?"active":"")+'">🗓️ Kalender</button></div>';
   html2+='</div>';
   if(STATE.planView==="cal")return html2+hCalendarPanel();
-  var html='<div style="padding:0 16px 16px;max-width:520px;margin:0 auto">';
+  var html='<div style="padding:0 13px 14px;max-width:520px;margin:0 auto">';
   html+='<div class="phase-filter">';
   html+='<button class="pill'+(STATE.phFilter===0?" active":"")+'" data-phfilter="0" style="'+(STATE.phFilter===0?"border-color:var(--acc);color:var(--acc);background:rgba(255,122,60,.12)":"")+'">Alle</button>';
   PHASES.forEach(function(p){
@@ -832,7 +830,7 @@ function hPlanPanel(){
     html+='<button class="pill'+(STATE.phFilter===p.id?" active":"")+'" data-phfilter="'+p.id+'" style="'+(STATE.phFilter===p.id?"border-color:"+c+";color:"+c+";background:"+c+"22":"")+'">'+p.name+'</button>';
   });
   html+='</div>';
-  for(var w=1;w<=49;w++){
+  for(var w=1;w<=WEEKS;w++){
     if(STATE.phFilter!==0&&getPh(w).id!==STATE.phFilter)continue;
     var ph=getPh(w),ses=genSes(w);
     var dn=ses.filter(function(s){return STATE.data[s.id]&&STATE.data[s.id].done;}).length;
@@ -891,7 +889,7 @@ function hPlanPanel(){
 function hCalendarPanel(){
   var year=STATE.calYear, month=STATE.calMonth;
   var monthNames=["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
-  var html='<div style="padding:0 16px 16px;max-width:520px;margin:0 auto">';
+  var html='<div style="padding:0 13px 14px;max-width:520px;margin:0 auto">';
   html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">';
   html+='<button data-calmonth="-1" class="pill">‹</button>';
   html+='<div class="disp" style="font-size:15px;font-weight:700">'+monthNames[month]+' '+year+'</div>';
@@ -905,7 +903,7 @@ function hCalendarPanel(){
   var firstMon=firstDay===0?6:firstDay-1;
   var daysInMonth=new Date(year,month+1,0).getDate();
   var weekDots={};
-  for(var w=1;w<=49;w++){
+  for(var w=1;w<=WEEKS;w++){
     var wStart=new Date(PLAN_START);wStart.setDate(wStart.getDate()+(w-1)*7);
     genSes(w).forEach(function(s,i){
       var d=new Date(wStart);d.setDate(d.getDate()+(s.day!=null?s.day:Math.min(i,6)));
@@ -946,13 +944,13 @@ function hCalendarPanel(){
 
 // ── FORTSCHRITT (Stats + Einheiten) ──────────────────────────────────────────
 function hFortschritt(d){
-  var html='<div style="padding:14px 16px;max-width:520px;margin:0 auto">';
+  var html='<div style="padding:12px 13px;max-width:520px;margin:0 auto">';
   html+='<div class="seg"><button data-ftab="stats" class="'+(STATE.ftab==="stats"?"active":"")+'">📊 Statistik</button><button data-ftab="zeiten" class="'+(STATE.ftab==="zeiten"?"active":"")+'">⏱ Einheiten</button></div>';
   if(STATE.ftab==="zeiten")return html+hZeitenList(d)+'</div>';
   // Streak
   html+='<div class="card" style="display:flex;align-items:center;gap:16px;'+(d.streak>0?"border-color:rgba(255,122,60,.35)":"")+'">';
   html+='<div style="font-size:40px;line-height:1">'+(d.streak===0?"😴":d.streak>=5?"🔥🔥":"🔥")+'</div>';
-  html+='<div><div class="num" style="font-size:30px;font-weight:800;color:'+(d.streak>0?"var(--acc)":"var(--dim)")+';line-height:1">'+d.streak+'</div>';
+  html+='<div><div class="num" style="font-size:26px;font-weight:800;color:'+(d.streak>0?"var(--acc)":"var(--dim)")+';line-height:1">'+d.streak+'</div>';
   html+='<div style="font-size:13px;font-weight:700;margin-top:2px">'+(d.streak===0?"Noch kein Streak":d.streak===1?"Woche in Folge":"Wochen in Folge!")+'</div>';
   html+='<div style="font-size:11px;color:var(--dim)">Schließe jede Woche vollständig ab 💪</div>';
   html+='</div></div>';
@@ -1049,7 +1047,7 @@ function hZeitenList(d){
 
 // ── KÖRPER ───────────────────────────────────────────────────────────────────
 function hKoerperPanel(){
-  var html='<div style="padding:14px 16px;max-width:520px;margin:0 auto">';
+  var html='<div style="padding:12px 13px;max-width:520px;margin:0 auto">';
   html+='<div style="font-size:15px;font-weight:700;margin-bottom:12px">⚖️ Gewichtsverlauf</div>';
   html+='<div class="card">';
   html+='<div style="display:flex;gap:10px;margin-bottom:10px">';
@@ -1152,7 +1150,7 @@ function hKoerperPanel(){
 // ── MEHR (Tipps, Profil, Zonen, Sync) ────────────────────────────────────────
 function hMehr(){
   var p=profile(),zs=hrZones();
-  var html='<div style="padding:14px 16px;max-width:520px;margin:0 auto">';
+  var html='<div style="padding:12px 13px;max-width:520px;margin:0 auto">';
   // Profil
   html+='<div class="card"><div style="display:flex;justify-content:space-between;align-items:center">';
   html+='<div><div class="lbl">Dein Profil</div>';
@@ -1511,6 +1509,16 @@ function bindSetup(){
     });
   });
 }
+
+// ── Einmaliger Neustart: alle Trainingsdaten zurücksetzen (Profil bleibt) ─────
+(function(){
+  if(STATE.data[RESET_KEY])return;
+  var prof=STATE.data.profile;
+  STATE.data={};
+  STATE.data[RESET_KEY]=true;
+  if(prof)STATE.data.profile=prof;
+  lsSet(LS_DATA,STATE.data);invalidateFit();
+})();
 
 // ── Boot ─────────────────────────────────────────────────────────────────────
 window.addEventListener("resize",function(){
