@@ -440,46 +440,66 @@ function runWeekReview(){
 }
 
 // ── Trainingsplan-Verknüpfung (liest die Halbmarathon-App im selben Browser) ──
-var HM_LS="hm-data", HM_START=new Date(2026,4,4);
-var HM_PHASES=[{id:1,wStart:1,wEnd:12},{id:2,wStart:13,wEnd:24},{id:3,wStart:25,wEnd:36},{id:4,wStart:37,wEnd:46},{id:5,wStart:47,wEnd:49}];
+// Spiegelt genSesNew aus index.html (identische Session-IDs) für die Übernahme-Funktion.
+var HM_LS="hm-data", HM_START=new Date(2026,6,13), HM_WEEKS=39;
+var HM_PHASES=[{id:1,wStart:1,wEnd:10},{id:2,wStart:11,wEnd:18},{id:3,wStart:19,wEnd:28},{id:4,wStart:29,wEnd:36},{id:5,wStart:37,wEnd:39}];
+var HM_TESTS={8:3,14:5,20:5,26:5,32:5};
 function hmLerp(a,b,t){return Math.round(a+(b-a)*Math.max(0,Math.min(1,t)));}
-function hmPh(w){return HM_PHASES.filter(function(p){return w>=p.wStart&&w<=p.wEnd;})[0]||HM_PHASES[4];}
-function hmRow(w,t){return [
-  {id:"w"+w+"-r1",type:"rowing",title:"Rudern – Ausdauer",mins:hmLerp(20,45,t)},
-  {id:"w"+w+"-r2",type:"rowing",title:"Rudern – Intervall",mins:hmLerp(20,40,t)},
-];}
+function hmPh(w){return HM_PHASES.filter(function(p){return w>=p.wStart&&w<=p.wEnd;})[0]||HM_PHASES[HM_PHASES.length-1];}
 function hmGen(w){
-  var ph=hmPh(w),t=(w-ph.wStart)/Math.max(ph.wEnd-ph.wStart,1);
-  if(ph.id===1)return [{id:"w"+w+"-1",type:"easy",title:"Lockerlauf + Beckenboden",mins:hmLerp(25,35,t)},
-    {id:"w"+w+"-2",type:"strength",title:"Lauf + Kräftigung",mins:hmLerp(25,30,t)+20}].concat(hmRow(w,t));
-  if(ph.id===2){var lm=hmLerp(40,70,t);return [{id:"w"+w+"-1",type:"easy",title:"Lockerlauf",mins:hmLerp(35,40,t)},
-    {id:"w"+w+"-2",type:"strength",title:"Lauf + Kraft",mins:hmLerp(30,35,t)},
-    {id:"w"+w+"-3",type:"long",title:"Langer Lauf",mins:lm}].concat(hmRow(w,t));}
-  if(ph.id===3){var lm3=hmLerp(60,90,t);
-    return [{id:"w"+w+"-1",type:"easy",title:"Lockerlauf",mins:hmLerp(40,45,t)},
-      {id:"w"+w+"-2",type:"tempo",title:"Tempolauf",mins:t<0.5?44:60},
-      {id:"w"+w+"-3",type:"long",title:"Langer Lauf",mins:lm3},
-      {id:"w"+w+"-4",type:"recovery",title:"Regeneration (opt.)",mins:30,optional:true}].concat(hmRow(w,t));}
-  if(ph.id===4){var km4=hmLerp(14,19,t);return [{id:"w"+w+"-1",type:"easy",title:"Lockerlauf",mins:40},
-    {id:"w"+w+"-2",type:"tempo",title:"Renntempo",mins:hmLerp(25,35,t)+20},
-    {id:"w"+w+"-3",type:"long",title:"Langer Lauf",mins:Math.round(km4*5.5)},
-    {id:"w"+w+"-4",type:"recovery",title:"Regenerationslauf",mins:30}].concat(hmRow(w,t));}
-  if(w===49)return [{id:"w49-1",type:"easy",title:"Leichte Aktivierung",mins:20},
-    {id:"w49-race",type:"race",title:"Halbmarathon",mins:105}];
-  var tp=w===47?0:0.5;
-  return [{id:"w"+w+"-1",type:"easy",title:"Lockerlauf",mins:hmLerp(35,25,tp)},
-    {id:"w"+w+"-2",type:"tempo",title:"Kurzes Tempotraining",mins:hmLerp(30,20,tp)},
-    {id:"w"+w+"-3",type:"easy",title:"Lockerlauf",mins:hmLerp(30,20,tp)},
-    {id:"w"+w+"-r1",type:"rowing",title:"Rudern – locker",mins:20}];
+  var ph=hmPh(w),t=(w-ph.wStart)/Math.max(ph.wEnd-ph.wStart,1),testKm=HM_TESTS[w],ses=[];
+  function add(sid,type,title,mins,opt){var s={id:"w"+w+"-"+sid,type:type,title:title,mins:mins};if(opt)s.optional=true;ses.push(s);}
+  function kraft(sid){var maint=ph.id>=4;add(sid,"strength",maint?"Kraft – Kettlebell (Erhaltung)":"Kraft "+(sid==="k1"?"A":"B")+" – Kettlebell",maint?25:35);}
+  if(w===HM_WEEKS){ add("1","easy","Aktivierung",20); add("2","recovery","Spaziergang / Mobilität",25,true); add("race","race","Halbmarathon",105); return ses; }
+  if(ph.id===5){ var tp=w===37?0:1; if(w===37)kraft("k1"); add("2","tempo","Kurzes Tempo",hmLerp(35,28,tp)); add("r1","rowing","Rudern – ganz locker",20); add("3","easy","Lockerlauf",hmLerp(30,25,tp)); add("4","easy","Lockerlauf",hmLerp(40,30,tp)); return ses; }
+  if(ph.id===1){
+    kraft("k1");
+    if(w>=6){ if(testKm)add("t","test",testKm+"-km-Testlauf",40); else add("1","easy","Lauf – Einstieg (locker)",hmLerp(18,28,(w-6)/4)); }
+    else add("re","rowing","Rudern – Intervall",hmLerp(22,30,t));
+    add("r1","rowing","Rudern – Steady",hmLerp(25,35,t));
+    kraft("k2");
+    add("r2","rowing","Rudern – locker",20,true);
+    if(w>=8)add("2","easy","Lockerlauf",hmLerp(25,35,(w-8)/2));
+    else add("rl","rowing","Rudern – locker & lang",hmLerp(30,45,t));
+    return ses;
+  }
+  if(ph.id===2){
+    kraft("k1");
+    if(testKm)add("t","test",testKm+"-km-Testlauf",45); else add("1","easy","Lockerlauf",hmLerp(35,45,t));
+    if(w%2===0)add("r1","rowing","Rudern – Intervall",hmLerp(25,35,t)); else add("r1","rowing","Rudern – Steady",hmLerp(30,40,t));
+    kraft("k2");
+    add("r2","rowing","Rudern – locker",20,true);
+    add("3","long","Langer Lauf",hmLerp(60,85,t));
+    return ses;
+  }
+  if(ph.id===3){
+    kraft("k1");
+    if(testKm)add("t","test",testKm+"-km-Testlauf",45); else add("1","tempo","Tempolauf",t<0.5?50:65);
+    add("r1","rowing","Rudern – Intervall",hmLerp(25,40,t));
+    kraft("k2");
+    add("2","easy","Lockerlauf",hmLerp(35,45,t),true);
+    add("3","long","Langer Lauf",hmLerp(70,95,t));
+    add("r2","rowing","Rudern – regenerativ",20,true);
+    return ses;
+  }
+  // Phase 4: Race Prep
+  kraft("k1");
+  if(testKm)add("t","test",testKm+"-km-Testlauf",45); else add("1","tempo","Renntempo",hmLerp(45,55,t));
+  add("r1","rowing","Rudern – Steady",hmLerp(30,35,t));
+  kraft("k2");
+  add("2","easy","Lockerlauf",hmLerp(35,40,t),true);
+  add("3","long","Langer Lauf",Math.round(hmLerp(14,19,t)*6.2));
+  add("r2","rowing","Rudern – locker",20,true);
+  return ses;
 }
 function hmSportMap(t){return t==="rowing"?"rowing":t==="strength"?"strength":"running";}
-function hmIntensity(t){return t==="tempo"||t==="race"?2:t==="recovery"?0:1;}
+function hmIntensity(t){return t==="tempo"||t==="race"||t==="test"?2:t==="recovery"?0:1;}
 function planSuggestions(){
   if(STATE.date!==todayIso())return [];
   var hm=lsGet(HM_LS,null);
   if(!hm)return [];
   var w=Math.floor((new Date()-HM_START)/(7*86400000))+1;
-  if(w<1||w>49)return [];
+  if(w<1||w>HM_WEEKS)return [];
   var d=dayEntry(STATE.date);
   return hmGen(w).filter(function(s){
     return !s.optional&&s.type!=="race"

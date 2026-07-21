@@ -321,15 +321,22 @@ function genSesNew(w){
     add("4",5,"easy","Lockerlauf",dur(lerp(40,30,tp))+" Min locker @ "+P.easy+"/km · Rennschuhe testen",dur(lerp(40,30,tp)),2);
     return ses;
   }
-  // ── Phase 1 (nur W11–12) ──
+  // ── Phase 1: Grundlagenfitness – Rudern + Kettlebell zuerst, Laufen ab Woche 6 ──
   if(ph.id===1){
     kraft("k1",0,"A");
-    if(testKm)add("t",1,"test",testKm+"-km-Testlauf","10 Min locker einlaufen · "+testKm+" km gleichmäßig zügig (anstrengend, aber durchhaltbar) · 10 Min auslaufen · Zeit + km eintragen!",40,[4,5]);
-    else add("1",1,"easy","Lockerlauf + Beckenboden",dur(lerp(25,35,t))+" Min Wohlfühltempo @ "+P.easy+"/km · vorher 10 Min Beckenboden-Aktivierung",dur(lerp(25,35,t)),2);
+    if(w>=6){
+      // Laufen wird ab Woche 6 behutsam eingeführt
+      if(testKm)add("t",1,"test",testKm+"-km-Testlauf","10 Min locker einlaufen · "+testKm+" km gleichmäßig zügig (anstrengend, aber durchhaltbar) · 10 Min auslaufen · Zeit + km eintragen!",40,[4,5]);
+      else add("1",1,"easy","Lauf – Einstieg (locker)",dur(lerp(18,28,(w-6)/4))+" Min sehr locker · Gehpausen erlaubt @ "+P.easy+"/km · vorher 10 Min Beckenboden",dur(lerp(18,28,(w-6)/4)),[1,2]);
+    } else {
+      // Woche 1–5: reines Rudern + Kettlebell, noch kein Laufen
+      add("re",1,"rowing","Rudern – Intervall","5 Min einfahren · "+lerp(3,6,t)+"×2 Min zügig · 90 Sek locker · 5 Min ausfahren",dur(lerp(22,30,t)),4);
+    }
     add("r1",2,"rowing","Rudern – Steady",dur(lerp(25,35,t))+" Min gleichmäßig · Schlagzahl 20–22 · Gespräch möglich",dur(lerp(25,35,t)),[2,3]);
     kraft("k2",3,"B");
     add("r2",4,"rowing","Rudern – locker",dur(20)+" Min ruhig · Technik-Fokus: erst Beine, dann Arme",dur(20),[1,2],true);
-    add("2",5,"easy","Lockerlauf",dur(lerp(30,45,t))+" Min locker @ "+P.easy+"/km",dur(lerp(30,45,t)),2);
+    if(w>=8)add("2",5,"easy","Lockerlauf",dur(lerp(25,35,(w-8)/2))+" Min locker @ "+P.easy+"/km",dur(lerp(25,35,(w-8)/2)),2);
+    else add("rl",5,"rowing","Rudern – locker & lang",dur(lerp(30,45,t))+" Min ruhig · lockeres Grundlagentempo",dur(lerp(30,45,t)),[1,2]);
     return ses;
   }
   // ── Phase 2: Basis ──
