@@ -153,6 +153,8 @@ var DEFAULT_SUPPS=[
   {id:"mag",name:"Magnesiumglycinat",dose:"200–400 mg",icon:"🌙",when:"Abends vor dem Schlafen",
    tip:"Glycinat ist die gut verträgliche, schlaffreundliche Form – perfekt abends. Unterstützt Muskelentspannung nach dem Training und den Schlaf. Etwas zeitlichen Abstand zu Zink lassen.",clr:"#34D399"},
 ];
+// Supplements, die bewusst erst später starten (erst die Basis etablieren, nicht alles auf einmal)
+var SUPP_START={zink:"2026-09-01"};   // Zink: erst einmal weglassen, ab 01.09.2026 dazunehmen
 
 var PHASES=[
   {id:1,name:"Fundament",wStart:1,wEnd:10},
@@ -554,11 +556,15 @@ function ensureCoach(){
 // ── Kraft: letzte Gewichte je Übung ──────────────────────────────────────────
 // ── Supplements ──────────────────────────────────────────────────────────────
 function todayKey(){var d=new Date();return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);}
+function suppActive(sp){var d=SUPP_START[sp.id];return !d||todayKey()>=d;}
+function fmtDay(s){try{return new Date(s+"T00:00:00").toLocaleDateString("de-DE",{day:"numeric",month:"short",year:"numeric"});}catch(e){return s;}}
 function suppTakenToday(id){
   var day=STATE.supp.log[todayKey()];
   return !!(day&&day.indexOf(id)>=0);
 }
 function toggleSupp(id){
+  var sp=STATE.supp.list.filter(function(s){return s.id===id;})[0];
+  if(sp&&!suppActive(sp))return;   // pausierte Supplements (z. B. Zink) noch nicht abhakbar
   var k=todayKey();
   if(!STATE.supp.log[k])STATE.supp.log[k]=[];
   var arr=STATE.supp.log[k],i=arr.indexOf(id);
@@ -567,7 +573,7 @@ function toggleSupp(id){
 }
 function suppStreak(){
   // aufeinanderfolgende Tage rückwärts, an denen ALLE Supplements genommen wurden
-  var ids=STATE.supp.list.map(function(s){return s.id;});
+  var ids=STATE.supp.list.filter(suppActive).map(function(s){return s.id;});
   if(ids.length===0)return 0;
   var streak=0,d=new Date();
   for(var i=0;i<400;i++){
@@ -583,7 +589,7 @@ function suppStreak(){
 }
 function suppTakenCountToday(){
   var day=STATE.supp.log[todayKey()]||[];
-  return STATE.supp.list.filter(function(s){return day.indexOf(s.id)>=0;}).length;
+  return STATE.supp.list.filter(function(s){return suppActive(s)&&day.indexOf(s.id)>=0;}).length;
 }
 
 function lastWeights(variant,beforeWeek){
@@ -1251,7 +1257,7 @@ function hMehr(){
   }
   html+='</div>';
   // Supplement-Tracker
-  var takenN=suppTakenCountToday(),totalN=STATE.supp.list.length,sStreak=suppStreak();
+  var takenN=suppTakenCountToday(),totalN=STATE.supp.list.filter(suppActive).length,sStreak=suppStreak();
   html+='<div class="card">';
   html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">';
   html+='<div class="lbl">💊 Supplements heute</div>';
@@ -1261,12 +1267,29 @@ function hMehr(){
   html+='</div></div>';
   html+='<div style="font-size:11px;color:var(--dim);margin-bottom:12px;line-height:1.5">Tippe zum Abhaken. Tippe auf „Timing", um zu sehen wann & wie du es am besten nimmst.</div>';
   STATE.supp.list.forEach(function(sp){
-    var taken=suppTakenToday(sp.id),open=STATE.suppOpen===sp.id;
+    var open=STATE.suppOpen===sp.id;
+    if(!suppActive(sp)){
+      // Bewusst pausiert (z. B. Zink) – erst ab Startdatum abhakbar
+      html+='<div style="border:1px dashed var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px;background:var(--sur2);opacity:.72">';
+      html+='<div style="display:flex;align-items:center;gap:11px">';
+      html+='<div style="width:22px;height:22px;border-radius:6px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--mut);border:1px solid var(--line2)">⏸</div>';
+      html+='<div style="flex:1;min-width:0">';
+      html+='<div style="font-size:13.5px;font-weight:700;color:var(--mut)">'+sp.icon+' '+esc(sp.name)+' <span style="font-weight:500;color:var(--dim);font-size:11.5px">· '+esc(sp.dose)+'</span></div>';
+      html+='<div style="font-size:11px;color:var(--dim);margin-top:1px">⏸ Erst einmal weglassen · Start ab '+fmtDay(SUPP_START[sp.id])+'</div>';
+      html+='</div>';
+      html+='<button data-suppinfo="'+sp.id+'" style="padding:5px 10px;border-radius:8px;border:1px solid var(--line);background:none;color:var(--mut);font-size:11px;flex-shrink:0">Warum '+(open?"▲":"▼")+'</button>';
+      html+='</div>';
+      if(open)html+='<div style="font-size:12px;color:var(--mut);line-height:1.55;margin-top:9px;padding-top:9px;border-top:1px dashed var(--line)">Zunächst nur die Basis nehmen (Kreatin, B-Komplex, Omega-3, Magnesium) und '+esc(sp.name)+' bewusst weglassen. Ab '+fmtDay(SUPP_START[sp.id])+' dazunehmen – dann taucht es hier automatisch zum Abhaken auf. '+esc(sp.tip)+'</div>';
+      html+='</div>';
+      return;
+    }
+    var taken=suppTakenToday(sp.id);
+    var justStarted=SUPP_START[sp.id]&&todayKey()===SUPP_START[sp.id];
     html+='<div style="border:1px solid '+(taken?"rgba(52,211,153,.3)":"var(--line)")+';border-radius:12px;padding:10px 12px;margin-bottom:8px;background:'+(taken?"rgba(52,211,153,.06)":"var(--sur2)")+'">';
     html+='<div style="display:flex;align-items:center;gap:11px">';
     html+='<button class="check-btn" data-supp="'+sp.id+'" style="border-color:'+(taken?sp.clr:"var(--line2)")+';background:'+(taken?sp.clr:"transparent")+'">'+(taken?"✓":"")+'</button>';
     html+='<div style="flex:1;min-width:0">';
-    html+='<div style="font-size:13.5px;font-weight:700;'+(taken?"color:var(--mut)":"")+'">'+sp.icon+' '+esc(sp.name)+' <span style="font-weight:500;color:var(--dim);font-size:11.5px">· '+esc(sp.dose)+'</span></div>';
+    html+='<div style="font-size:13.5px;font-weight:700;'+(taken?"color:var(--mut)":"")+'">'+sp.icon+' '+esc(sp.name)+' <span style="font-weight:500;color:var(--dim);font-size:11.5px">· '+esc(sp.dose)+'</span>'+(justStarted?' <span class="chip" style="color:var(--acc);border-color:rgba(255,122,60,.4);font-size:10px">neu ab heute</span>':'')+'</div>';
     html+='<div style="font-size:11px;color:'+sp.clr+';margin-top:1px">🕐 '+esc(sp.when)+'</div>';
     html+='</div>';
     html+='<button data-suppinfo="'+sp.id+'" style="padding:5px 10px;border-radius:8px;border:1px solid var(--line);background:none;color:var(--mut);font-size:11px;flex-shrink:0">Timing '+(open?"▲":"▼")+'</button>';
