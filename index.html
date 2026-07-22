@@ -141,7 +141,7 @@ var DAYN=["Mo","Di","Mi","Do","Fr","Sa","So"];
 
 var PC={1:"#60A5FA",2:"#34D399",3:"#FBBF24",4:"#F87171",5:"#C084FC"};
 var SC={easy:"#C084FC",long:"#34D399",tempo:"#FBBF24",strength:"#FB923C",recovery:"#60A5FA",race:"#FF7A3C",rowing:"#22D3EE",test:"#F472B6"};
-var SI={easy:"🏃‍♀️",long:"🛤️",tempo:"⚡",strength:"💪",recovery:"🌿",race:"🏅",rowing:"🚣‍♀️",test:"⏱️"};
+var SI={easy:"🏃🏻‍♀️",long:"🛤️",tempo:"⚡",strength:"💪",recovery:"🌿",race:"🏅",rowing:"🚣‍♀️",test:"⏱️"};
 var MOODS=["😫","😕","😊","💪","🚀"];
 var ZC=["#94A3B8","#38BDF8","#34D399","#FBBF24","#F87171"]; // Z1–Z5
 
@@ -737,7 +737,7 @@ function hHeader(d){
   var a=ampel();
   return '<div class="hdr"><div class="hdr-in">'+
     '<div style="display:flex;align-items:center;gap:9px">'+
-      '<div class="disp" style="font-size:16px;font-weight:800;letter-spacing:-.3px">🏃‍♀️ HM 2027</div>'+
+      '<div class="disp" style="font-size:16px;font-weight:800;letter-spacing:-.3px">🏃🏻‍♀️ HM 2027</div>'+
       '<span class="chip"><span style="width:7px;height:7px;border-radius:50%;background:'+a.c+';display:inline-block"></span>'+a.s+'</span>'+
     '</div>'+
     '<div style="display:flex;align-items:center;gap:9px">'+
@@ -1157,7 +1157,7 @@ function hFortschritt(d){
     });
     return h+'</div>';
   }
-  html+=badgeBlock("🏃‍♀️ Lauf-Abzeichen",RUN_BADGES,d.earnedRunB,null);
+  html+=badgeBlock("🏃🏻‍♀️ Lauf-Abzeichen",RUN_BADGES,d.earnedRunB,null);
   html+=badgeBlock("🚣‍♀️ Ruder-Abzeichen",ROW_BADGES,d.earnedRowB,"rgba(56,189,248,.35)");
   html+=badgeBlock("💪 Kraft-Abzeichen",KRAFT_BADGES,d.earnedKB,"rgba(251,146,60,.35)");
   // Charts
@@ -1174,7 +1174,7 @@ function hFortschritt(d){
     });
     return h+'</div></div>';
   }
-  html+=chart("🏃‍♀️ Lauf-KM pro Woche",d.runChart,null);
+  html+=chart("🏃🏻‍♀️ Lauf-KM pro Woche",d.runChart,null);
   html+=chart("🚣‍♀️ Ruder-KM pro Woche",d.rowChart,"rgba(56,189,248,.3)");
   // Pace-Rechner
   html+='<div style="font-size:14px;font-weight:700;margin:4px 0 10px">⏱ Pace-Rechner</div>';
@@ -1198,7 +1198,7 @@ function hFortschritt(d){
 }
 function hZeitenList(d){
   var html='';
-  if(d.logged.length===0)return '<div style="text-align:center;color:var(--dim);padding:50px 0;font-size:14px">Noch keine Einheiten eingetragen. Los geht\'s! 🏃‍♀️</div>';
+  if(d.logged.length===0)return '<div style="text-align:center;color:var(--dim);padding:50px 0;font-size:14px">Noch keine Einheiten eingetragen. Los geht\'s! 🏃🏻‍♀️</div>';
   d.logged.forEach(function(s){
     var e=s.entry||{};
     var sp=s.type==="rowing"?splitOf(e):null;
@@ -1389,7 +1389,7 @@ function hMehr(){
     {icon:"🚣‍♀️",title:"Rudertraining",clr:"#22D3EE",items:["Reihenfolge: Beine → Rumpf → Arme, zurück andersrum","Atemrhythmus: ausatmen beim Zug, einatmen beim Vorgleiten","Schlagzahl locker 18–22, Intervalle 26–30","Der Ø /500m-Split wird beim Eintragen automatisch berechnet"]},
     {icon:"⚡",title:"Dein Tempogerüst",clr:"#FBBF24",items:["Ziel: 1:45 Std. = 4:58 min/km","Aktuelle Paces stehen direkt in den Einheiten – sie kommen aus deinem letzten Testlauf","Locker heißt: Unterhaltung möglich (Zone 2)","Testläufe alle 6–8 Wochen kalibrieren alles neu"]},
     {icon:"😴",title:"Regeneration ist Training",clr:"#60A5FA",items:["Schlaf ist das stärkste Trainingsmittel – 7–8 Stunden","Nach langen Läufen: Beine hochlegen, proteinreich essen","Muskelkater ≠ Gelenkschmerz – bei Gelenkschmerzen pausieren!","Mindestens 1 kompletter Ruhetag pro Woche"]},
-    {icon:"🎵",title:"Playlist-Empfehlungen",clr:"#C084FC",items:["⚡ Tempolauf → 160–180 BPM · Electronic, Hip-Hop, Rock","🏃‍♀️ Lockerlauf → 140–160 BPM · Pop, Indie, Podcast","🛤️ Langer Lauf → Mix · Hörbuch/Podcast für die zweite Hälfte","🚣‍♀️ Rudern → 120–140 BPM · lo-fi, Chillhop","💪 Kraft → 130–150 BPM · motivierender Hip-Hop oder Rock","💡 Spotify-Suche: BPM-Zahl + 'Running'"]},
+    {icon:"🎵",title:"Playlist-Empfehlungen",clr:"#C084FC",items:["⚡ Tempolauf → 160–180 BPM · Electronic, Hip-Hop, Rock","🏃🏻‍♀️ Lockerlauf → 140–160 BPM · Pop, Indie, Podcast","🛤️ Langer Lauf → Mix · Hörbuch/Podcast für die zweite Hälfte","🚣‍♀️ Rudern → 120–140 BPM · lo-fi, Chillhop","💪 Kraft → 130–150 BPM · motivierender Hip-Hop oder Rock","💡 Spotify-Suche: BPM-Zahl + 'Running'"]},
     {icon:"🥗",title:"Ernährung & Hydration",clr:"#34D399",items:["Vor Läufen > 60 Min: KH-reiche Mahlzeit 2 Std. vorher","Nach Training: Protein + KH innerhalb von 30 Min","2–3 Liter Wasser täglich, mehr bei Hitze","Ab Woche 25: Long Runs mit Gels oder Banane üben"]},
     {icon:"⚖️",title:"Abnehmen – dein persönlicher Plan",clr:"#A78BFA",items:["🎯 Ziel: 1.550 kcal täglich · ergibt ~500 kcal Defizit","👣 10.000 Schritte täglich · verbrennt ~250 kcal extra","🥩 Mindestens 100–120g Protein täglich · schützt Muskeln & sättigt","⏰ KH nach dem Training essen · vorher Protein & Fett bevorzugen","🔢 Dein Grundumsatz: ~1.430 kcal · Gesamtbedarf: ~2.050 kcal","📉 Realistische Abnahme: 1,5–2 kg pro Monat · 10 kg in ~6 Monaten","⚠️ Nie unter 1.400 kcal – schadet dem Beckenboden & der Regeneration"]},
   ];
@@ -1477,7 +1477,7 @@ function hSetup(){
   return '<div style="background:var(--bg);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px">'+
     '<div style="max-width:460px;width:100%">'+
     '<div style="text-align:center;margin-bottom:26px">'+
-      '<div style="font-size:46px;margin-bottom:8px">🏃‍♀️</div>'+
+      '<div style="font-size:46px;margin-bottom:8px">🏃🏻‍♀️</div>'+
       '<div class="disp" style="font-size:22px;font-weight:800">Halbmarathon 2027</div>'+
       '<div style="font-size:13px;color:var(--mut);margin-top:6px">Verbinde Supabase für Geräte-Sync – oder überspringe den Schritt.</div>'+
     '</div>'+
