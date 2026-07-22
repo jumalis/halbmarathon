@@ -152,9 +152,14 @@ var DEFAULT_SUPPS=[
    tip:"Nicht zusammen mit dem Training-Kaffee oder Milchprodukten (hemmt Aufnahme). Nicht dauerhaft hoch dosieren – über Monate kann viel Zink Kupfermangel begünstigen. Abends mit etwas Abstand zu Magnesium.",clr:"#A78BFA"},
   {id:"mag",name:"Magnesiumglycinat",dose:"200–400 mg",icon:"🌙",when:"Abends vor dem Schlafen",
    tip:"Glycinat ist die gut verträgliche, schlaffreundliche Form – perfekt abends. Unterstützt Muskelentspannung nach dem Training und den Schlaf. Etwas zeitlichen Abstand zu Zink lassen.",clr:"#34D399"},
+  {id:"ashwa",name:"Ashwagandha",dose:"300–600 mg",icon:"🌿",when:"Abends, als Kur",
+   tip:"Optional. Standardisierter Extrakt (z. B. KSM-66). Kann Stress & Cortisol senken und den Schlaf verbessern – das unterstützt indirekt die Regeneration. Bewusst als Kur (6 Wochen ein / 4 Wochen Pause), nicht dauerhaft – die Langzeitsicherheit ist nicht gut untersucht. VORSICHT: nicht bei Schilddrüsenüberfunktion oder Schilddrüsen-Medikation, nicht bei Kinderwunsch/Schwangerschaft, mögliche Wechselwirkung mit Beruhigungs- und Schilddrüsenmitteln. Im Zweifel vorher ärztlich abklären.",clr:"#84CC16"},
 ];
-// Supplements, die bewusst erst später starten (erst die Basis etablieren, nicht alles auf einmal)
-var SUPP_START={zink:"2026-09-01"};   // Zink: erst einmal weglassen, ab 01.09.2026 dazunehmen
+// Kur-Zyklen: Supplements, die bewusst NICHT dauerhaft laufen (Wochen ein / Wochen Pause, wiederkehrend ab 'start')
+var SUPP_CYCLE={
+  zink: {start:"2026-07-20", on:8, off:4},   // Zink: 8 Wochen ein, 4 Wochen Pause
+  ashwa:{start:"2026-07-20", on:6, off:4},   // Ashwagandha: 6 Wochen ein, 4 Wochen Pause
+};
 
 var PHASES=[
   {id:1,name:"Fundament",wStart:1,wEnd:10},
@@ -430,6 +435,9 @@ var STATE = {
 // Supp-Struktur absichern (falls alte/kaputte Daten)
 if(!STATE.supp||!STATE.supp.list||!STATE.supp.log){STATE.supp={list:DEFAULT_SUPPS.slice(),log:{}};}
 if(!STATE.supp.list.length)STATE.supp.list=DEFAULT_SUPPS.slice();
+// Neu hinzugekommene Standard-Supplements (z. B. Ashwagandha) in bestehende Liste übernehmen
+DEFAULT_SUPPS.forEach(function(def){if(!STATE.supp.list.some(function(s){return s.id===def.id;}))STATE.supp.list.push(Object.assign({},def));});
+lsSet(LS_SUPP,STATE.supp);
 
 // ── Supabase (lazy) ──────────────────────────────────────────────────────────
 function initSupabase(cb){
@@ -556,7 +564,17 @@ function ensureCoach(){
 // ── Kraft: letzte Gewichte je Übung ──────────────────────────────────────────
 // ── Supplements ──────────────────────────────────────────────────────────────
 function todayKey(){var d=new Date();return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);}
-function suppActive(sp){var d=SUPP_START[sp.id];return !d||todayKey()>=d;}
+function isoOf(d){return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);}
+function suppCycleState(id){
+  var c=SUPP_CYCLE[id];
+  if(!c)return {active:true};
+  var DAY=86400000,start=new Date(c.start+"T00:00:00").getTime(),now=new Date(todayKey()+"T00:00:00").getTime();
+  if(now<start)return {active:false,resume:c.start};
+  var period=(c.on+c.off)*7*DAY,onMs=c.on*7*DAY,into=(now-start)%period;
+  if(into<onMs)return {active:true,pauseAt:isoOf(new Date(now+(onMs-into)))};
+  return {active:false,resume:isoOf(new Date(now+(period-into)))};
+}
+function suppActive(sp){return suppCycleState(sp.id).active;}
 function fmtDay(s){try{return new Date(s+"T00:00:00").toLocaleDateString("de-DE",{day:"numeric",month:"short",year:"numeric"});}catch(e){return s;}}
 function suppTakenToday(id){
   var day=STATE.supp.log[todayKey()];
@@ -1267,30 +1285,29 @@ function hMehr(){
   html+='</div></div>';
   html+='<div style="font-size:11px;color:var(--dim);margin-bottom:12px;line-height:1.5">Tippe zum Abhaken. Tippe auf „Timing", um zu sehen wann & wie du es am besten nimmst.</div>';
   STATE.supp.list.forEach(function(sp){
-    var open=STATE.suppOpen===sp.id;
-    if(!suppActive(sp)){
-      // Bewusst pausiert (z. B. Zink) – erst ab Startdatum abhakbar
+    var open=STATE.suppOpen===sp.id, st=suppCycleState(sp.id), cyc=SUPP_CYCLE[sp.id];
+    if(!st.active){
+      // Kur-Pause (z. B. Zink, Ashwagandha) – aktuell nicht abhakbar
       html+='<div style="border:1px dashed var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px;background:var(--sur2);opacity:.72">';
       html+='<div style="display:flex;align-items:center;gap:11px">';
       html+='<div style="width:22px;height:22px;border-radius:6px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--mut);border:1px solid var(--line2)">⏸</div>';
       html+='<div style="flex:1;min-width:0">';
       html+='<div style="font-size:13.5px;font-weight:700;color:var(--mut)">'+sp.icon+' '+esc(sp.name)+' <span style="font-weight:500;color:var(--dim);font-size:11.5px">· '+esc(sp.dose)+'</span></div>';
-      html+='<div style="font-size:11px;color:var(--dim);margin-top:1px">⏸ Erst einmal weglassen · Start ab '+fmtDay(SUPP_START[sp.id])+'</div>';
+      html+='<div style="font-size:11px;color:var(--dim);margin-top:1px">⏸ Kur-Pause · wieder ab '+fmtDay(st.resume)+'</div>';
       html+='</div>';
       html+='<button data-suppinfo="'+sp.id+'" style="padding:5px 10px;border-radius:8px;border:1px solid var(--line);background:none;color:var(--mut);font-size:11px;flex-shrink:0">Warum '+(open?"▲":"▼")+'</button>';
       html+='</div>';
-      if(open)html+='<div style="font-size:12px;color:var(--mut);line-height:1.55;margin-top:9px;padding-top:9px;border-top:1px dashed var(--line)">Zunächst nur die Basis nehmen (Kreatin, B-Komplex, Omega-3, Magnesium) und '+esc(sp.name)+' bewusst weglassen. Ab '+fmtDay(SUPP_START[sp.id])+' dazunehmen – dann taucht es hier automatisch zum Abhaken auf. '+esc(sp.tip)+'</div>';
+      if(open)html+='<div style="font-size:12px;color:var(--mut);line-height:1.55;margin-top:9px;padding-top:9px;border-top:1px dashed var(--line)">Kur-Prinzip'+(cyc?" ("+cyc.on+" Wochen ein / "+cyc.off+" Wochen Pause)":"")+' – so läuft es bewusst nicht dauerhaft. Wieder aktiv ab '+fmtDay(st.resume)+'. '+esc(sp.tip)+'</div>';
       html+='</div>';
       return;
     }
     var taken=suppTakenToday(sp.id);
-    var justStarted=SUPP_START[sp.id]&&todayKey()===SUPP_START[sp.id];
     html+='<div style="border:1px solid '+(taken?"rgba(52,211,153,.3)":"var(--line)")+';border-radius:12px;padding:10px 12px;margin-bottom:8px;background:'+(taken?"rgba(52,211,153,.06)":"var(--sur2)")+'">';
     html+='<div style="display:flex;align-items:center;gap:11px">';
     html+='<button class="check-btn" data-supp="'+sp.id+'" style="border-color:'+(taken?sp.clr:"var(--line2)")+';background:'+(taken?sp.clr:"transparent")+'">'+(taken?"✓":"")+'</button>';
     html+='<div style="flex:1;min-width:0">';
-    html+='<div style="font-size:13.5px;font-weight:700;'+(taken?"color:var(--mut)":"")+'">'+sp.icon+' '+esc(sp.name)+' <span style="font-weight:500;color:var(--dim);font-size:11.5px">· '+esc(sp.dose)+'</span>'+(justStarted?' <span class="chip" style="color:var(--acc);border-color:rgba(255,122,60,.4);font-size:10px">neu ab heute</span>':'')+'</div>';
-    html+='<div style="font-size:11px;color:'+sp.clr+';margin-top:1px">🕐 '+esc(sp.when)+'</div>';
+    html+='<div style="font-size:13.5px;font-weight:700;'+(taken?"color:var(--mut)":"")+'">'+sp.icon+' '+esc(sp.name)+' <span style="font-weight:500;color:var(--dim);font-size:11.5px">· '+esc(sp.dose)+'</span></div>';
+    html+='<div style="font-size:11px;color:'+sp.clr+';margin-top:1px">🕐 '+esc(sp.when)+(st.pauseAt?' <span style="color:var(--dim)">· 🔁 Pause ab '+fmtDay(st.pauseAt)+'</span>':'')+'</div>';
     html+='</div>';
     html+='<button data-suppinfo="'+sp.id+'" style="padding:5px 10px;border-radius:8px;border:1px solid var(--line);background:none;color:var(--mut);font-size:11px;flex-shrink:0">Timing '+(open?"▲":"▼")+'</button>';
     html+='</div>';
