@@ -789,6 +789,60 @@ function warmupRows(s){
   r("Auslaufen","5 Min gehen · kurz dehnen");
   return rows.join("");
 }
+// ── Kalender-Erinnerungen (.ics) ─────────────────────────────────────────────
+// Erzeugt eine iCalendar-Datei und öffnet sie – auf dem iPhone landet der Termin
+// direkt in der nativen Kalender-App, die dann von selbst erinnert.
+function icsDt(d){ // lokale ("floating") Zeit ohne Zeitzone → bleibt bei der eingestellten Uhrzeit
+  return d.getFullYear()+("0"+(d.getMonth()+1)).slice(-2)+("0"+d.getDate()).slice(-2)+"T"+
+         ("0"+d.getHours()).slice(-2)+("0"+d.getMinutes()).slice(-2)+"00";
+}
+function icsEsc(s){return String(s==null?"":s).replace(/\\/g,"\\\\").replace(/;/g,"\\;").replace(/,/g,"\\,").replace(/\r?\n/g,"\\n");}
+function icsUid(){return "hm-"+Date.now()+"-"+Math.random().toString(36).slice(2,8)+"@hm2027";}
+function vevent(o){ // {start,end,summary,desc,rrule,alarmMin}
+  var e=["BEGIN:VEVENT","UID:"+icsUid(),"DTSTAMP:"+icsDt(new Date()),
+    "DTSTART:"+icsDt(o.start),"DTEND:"+icsDt(o.end),"SUMMARY:"+icsEsc(o.summary)];
+  if(o.desc)e.push("DESCRIPTION:"+icsEsc(o.desc));
+  if(o.rrule)e.push("RRULE:"+o.rrule);
+  if(o.alarmMin!=null)e=e.concat(["BEGIN:VALARM","ACTION:DISPLAY","DESCRIPTION:"+icsEsc(o.summary),"TRIGGER:-PT"+o.alarmMin+"M","END:VALARM"]);
+  e.push("END:VEVENT");
+  return e;
+}
+function downloadICS(name,events){
+  var cal=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//HM2027//DE","CALSCALE:GREGORIAN","METHOD:PUBLISH"]
+    .concat(events).concat(["END:VCALENDAR"]).join("\r\n");
+  var blob=new Blob([cal],{type:"text/calendar;charset=utf-8"});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement("a");a.href=url;a.download=name;a.rel="noopener";
+  document.body.appendChild(a);a.click();
+  setTimeout(function(){try{document.body.removeChild(a);}catch(e){}URL.revokeObjectURL(url);},4000);
+}
+function calForSession(id){
+  var s=allSessions().filter(function(x){return x.id===id;})[0];
+  if(!s)return;
+  var start=sesDate(s.week,s.day);start.setHours(18,0,0,0);
+  var end=new Date(start.getTime()+(s.min||45)*60000);
+  downloadICS("einheit.ics",vevent({start:start,end:end,
+    summary:SI[s.type]+" "+s.title,desc:(s.desc||"")+" · Halbmarathon-Training",alarmMin:30}));
+}
+function calForSupps(){
+  var t=new Date();
+  var mS=new Date(t);mS.setHours(8,0,0,0);
+  var eS=new Date(t);eS.setHours(20,0,0,0);
+  var evs=vevent({start:mS,end:new Date(mS.getTime()+15*60000),summary:"💊 Supplements (morgens)",
+      desc:"B12 zum Frühstück. In der App abhaken.",rrule:"FREQ=DAILY",alarmMin:0})
+    .concat(vevent({start:eS,end:new Date(eS.getTime()+15*60000),summary:"💊 Supplements (abends)",
+      desc:"Zink, Magnesium, Omega, Ashwagandha – was gerade aktiv ist, zeigt dir die App. Dort abhaken.",rrule:"FREQ=DAILY",alarmMin:0}));
+  downloadICS("supplements.ics",evs);
+}
+// Erinnern nur für heute/künftige, noch nicht erledigte Einheiten sinnvoll
+function sesRemindable(s,w){
+  if(STATE.data[s.id]&&STATE.data[s.id].done)return false;
+  if(s.type==="race")return false;
+  w=w!=null?w:s.week;
+  var d=sesDate(w,s.day);d.setHours(23,59,59,0);
+  return d.getTime()>=Date.now();
+}
+
 function sesCard(s,full){
   var e=STATE.data[s.id]||{},done=!!e.done;
   var h='<div class="ses" style="'+(done?"opacity:.72":"")+'">';
@@ -811,7 +865,10 @@ function sesCard(s,full){
     if(e.notes)h+='<div style="font-size:11.5px;color:var(--dim);font-style:italic;margin-top:2px">„'+esc(e.notes)+'"</div>';
   }
   h+='</div></div>';
-  h+='<button class="btn ghost" style="margin-top:11px;padding:10px" data-open="'+esc(s.id)+'">'+(done?"✏️ Eintrag bearbeiten":"Eintragen & Check-in →")+'</button>';
+  h+='<div style="display:flex;gap:8px;margin-top:11px">';
+  h+='<button class="btn ghost" style="flex:1;padding:10px" data-open="'+esc(s.id)+'">'+(done?"✏️ Eintrag bearbeiten":"Eintragen & Check-in →")+'</button>';
+  if(sesRemindable(s))h+='<button class="btn ghost" style="width:auto;padding:10px 14px;flex-shrink:0;font-size:16px" data-cal="'+esc(s.id)+'" title="In den iPhone-Kalender erinnern">📅</button>';
+  h+='</div>';
   h+='</div>';
   return h;
 }
@@ -982,7 +1039,10 @@ function hPlanPanel(){
           html+='<div style="font-size:11px;color:'+SC[s.type]+';margin-top:3px;font-weight:600">⏱ '+esc(entry.time||"")+(entry.km?" · "+esc(entry.km)+" km":"")+(ex2?" · Ø "+ex2:"")+(entry.rpe?" · "+entry.rpe+"/10":"")+(entry.notes?' · „'+esc(entry.notes)+'"':"")+'</div>';
         }
         html+='</div>';
-        html+='<button style="padding:4px 10px;border-radius:8px;border:1px solid var(--line);background:none;color:var(--mut);font-size:11px;flex-shrink:0;margin-top:2px" data-open="'+esc(s.id)+'">'+(entry.time||entry.rpe?"✏️":"+ Log")+'</button>';
+        html+='<div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;margin-top:2px">';
+        html+='<button style="padding:4px 10px;border-radius:8px;border:1px solid var(--line);background:none;color:var(--mut);font-size:11px" data-open="'+esc(s.id)+'">'+(entry.time||entry.rpe?"✏️":"+ Log")+'</button>';
+        if(sesRemindable(s,w))html+='<button style="padding:4px 10px;border-radius:8px;border:1px solid var(--line);background:none;color:var(--mut);font-size:11px" data-cal="'+esc(s.id)+'" title="In den iPhone-Kalender">📅</button>';
+        html+='</div>';
         html+='</div>';
       });
       html+='</div>';
@@ -1283,7 +1343,8 @@ function hMehr(){
   if(sStreak>0)html+='<span class="chip" style="color:var(--acc);border-color:rgba(255,122,60,.4)">🔥 '+sStreak+'T</span>';
   html+='<span class="num" style="font-size:13px;font-weight:800;color:'+(takenN===totalN?"var(--ok)":"var(--mut)")+'">'+takenN+'/'+totalN+'</span>';
   html+='</div></div>';
-  html+='<div style="font-size:11px;color:var(--dim);margin-bottom:12px;line-height:1.5">Tippe zum Abhaken. Tippe auf „Timing", um zu sehen wann & wie du es am besten nimmst.</div>';
+  html+='<div style="font-size:11px;color:var(--dim);margin-bottom:10px;line-height:1.5">Tippe zum Abhaken. Tippe auf „Timing", um zu sehen wann & wie du es am besten nimmst.</div>';
+  html+='<button class="btn ghost" style="width:100%;padding:9px;margin-bottom:12px;font-size:12px" data-suppcal="1">📅 Tägliche Erinnerung in den iPhone-Kalender (morgens + abends)</button>';
   STATE.supp.list.forEach(function(sp){
     var open=STATE.suppOpen===sp.id, st=suppCycleState(sp.id), cyc=SUPP_CYCLE[sp.id];
     if(!st.active){
@@ -1518,6 +1579,12 @@ function bindEvents(){
   });
   document.querySelectorAll("[data-open]").forEach(function(b){
     b.addEventListener("click",function(e){e.stopPropagation();openModal(b.dataset.open);});
+  });
+  document.querySelectorAll("[data-cal]").forEach(function(b){
+    b.addEventListener("click",function(e){e.stopPropagation();calForSession(b.dataset.cal);});
+  });
+  document.querySelectorAll("[data-suppcal]").forEach(function(b){
+    b.addEventListener("click",function(e){e.stopPropagation();calForSupps();});
   });
   // Check-in-Modal
   var overlay=document.getElementById("modalOverlay");
