@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
 <meta name="theme-color" content="#0A0E17"/>
 <title>Halbmarathon 2027 · Coach</title>
+<link rel="icon" href="apple-touch-icon.png"/>
+<link rel="apple-touch-icon" href="apple-touch-icon.png"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="HM 2027"/>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -137,6 +142,14 @@ var DAYN=["Mo","Di","Mi","Do","Fr","Sa","So"];
 var PC={1:"#60A5FA",2:"#34D399",3:"#FBBF24",4:"#F87171",5:"#C084FC"};
 var SC={easy:"#60A5FA",long:"#34D399",tempo:"#FBBF24",strength:"#FB923C",recovery:"#C084FC",race:"#FF7A3C",rowing:"#22D3EE",test:"#F472B6"};
 var SI={easy:"🏃‍♀️",long:"🛤️",tempo:"⚡",strength:"💪",recovery:"🌿",race:"🏅",rowing:"🚣‍♀️",test:"⏱️"};
+// Läuferin mit braunen Haaren (Marken-Icon, statt Emoji – Emoji kennt keine Haarfarbe)
+function runnerSVG(px){return '<svg width="'+px+'" height="'+px+'" viewBox="0 0 64 64" fill="none" role="img" aria-label="Läuferin" style="display:inline-block;vertical-align:middle">'
+  +'<path d="M33 10 C24 5 15 8 13 15 C19 12 27 12 32 16 Z" fill="#6B4423"/>'
+  +'<circle cx="39" cy="15" r="7" fill="#F0A878"/>'
+  +'<path d="M32 15 C32 8 38 5 44 9 C40 8 35 10 33 16 Z" fill="#6B4423"/>'
+  +'<g stroke="#FF7A3C" stroke-width="5.6" stroke-linecap="round" stroke-linejoin="round">'
+  +'<path d="M37 23 L29 39"/><path d="M35 27 L45 29 L47 21"/><path d="M35 27 L26 28 L22 34"/>'
+  +'<path d="M29 39 L41 43 L39 55"/><path d="M29 39 L22 49 L15 54"/></g></svg>';}
 var MOODS=["😫","😕","😊","💪","🚀"];
 var ZC=["#94A3B8","#38BDF8","#34D399","#FBBF24","#F87171"]; // Z1–Z5
 
@@ -732,7 +745,7 @@ function hHeader(d){
   var a=ampel();
   return '<div class="hdr"><div class="hdr-in">'+
     '<div style="display:flex;align-items:center;gap:9px">'+
-      '<div class="disp" style="font-size:16px;font-weight:800;letter-spacing:-.3px">🏃‍♀️ HM 2027</div>'+
+      '<div class="disp" style="font-size:16px;font-weight:800;letter-spacing:-.3px;display:flex;align-items:center;gap:5px">'+runnerSVG(22)+'HM 2027</div>'+
       '<span class="chip"><span style="width:7px;height:7px;border-radius:50%;background:'+a.c+';display:inline-block"></span>'+a.s+'</span>'+
     '</div>'+
     '<div style="display:flex;align-items:center;gap:9px">'+
@@ -1472,7 +1485,7 @@ function hSetup(){
   return '<div style="background:var(--bg);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px">'+
     '<div style="max-width:460px;width:100%">'+
     '<div style="text-align:center;margin-bottom:26px">'+
-      '<div style="font-size:46px;margin-bottom:8px">🏃‍♀️</div>'+
+      '<div style="margin-bottom:8px">'+runnerSVG(58)+'</div>'+
       '<div class="disp" style="font-size:22px;font-weight:800">Halbmarathon 2027</div>'+
       '<div style="font-size:13px;color:var(--mut);margin-top:6px">Verbinde Supabase für Geräte-Sync – oder überspringe den Schritt.</div>'+
     '</div>'+
