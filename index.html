@@ -445,6 +445,24 @@ DEFAULT_SUPPS.forEach(function(def){if(!STATE.supp.list.some(function(s){return 
 lsSet(LS_SUPP,STATE.supp);
 
 // ── Supabase (lazy) ──────────────────────────────────────────────────────────
+// Supabase-URL normalisieren: Leerzeichen/Umbrüche weg, https:// ergänzen, Slash am Ende weg
+function normUrl(u){
+  u=(u||"").replace(/\s+/g,"");
+  if(!u)return "";
+  if(!/^https?:\/\//i.test(u))u="https://"+u;
+  return u.replace(/\/+$/,"");
+}
+// Verständliche Fehlermeldung aus einem Supabase-/Netzwerkfehler
+function supErr(e){
+  var m=(e&&e.message)||(e&&e.msg)||String(e||"");
+  if(/load failed|failed to fetch|networkerror|typeerror/i.test(m))
+    return "Netzwerkfehler – Supabase nicht erreichbar. Bitte prüfen: (1) Ist die Project-URL korrekt und beginnt mit https:// ? Nimm die „Project URL“ aus Supabase → Project Settings → API (nicht die Adresse aus der Browserzeile). (2) Besteht eine Internetverbindung? (3) Ist dein Supabase-Projekt evtl. pausiert? Kostenlose Projekte pausieren nach ~1 Woche ohne Nutzung – im Supabase-Dashboard auf „Restore project“ tippen.";
+  if(/api key|invalid.*key|jwt|unauthorized|401/i.test(m))
+    return "API-Key abgelehnt. Nutze den „anon public“ Key aus Supabase → Project Settings → API (nicht den service_role-Key).";
+  if(/relation|table|does not exist|schema cache|42p01/i.test(m))
+    return "Tabelle fehlt. Führe den SQL-Code oben einmal im Supabase SQL-Editor aus (Tabelle „hm_training“).";
+  return "Fehler: "+m;
+}
 function initSupabase(cb){
   if(window.supabase){cb(window.supabase);return;}
   var s=document.createElement("script");
@@ -458,7 +476,7 @@ function connectSupabase(){
   initSupabase(function(lib){
     var fn=lib.createClient||(lib.default&&lib.default.createClient);
     if(!fn)return;
-    STATE.sbClient=fn(STATE.cfg.url,STATE.cfg.key);
+    STATE.sbClient=fn(normUrl(STATE.cfg.url),(STATE.cfg.key||"").replace(/\s+/g,""));
     loadFromSupabase();
   });
 }
@@ -1719,22 +1737,24 @@ function bindSetup(){
   if(sbSkip)sbSkip.addEventListener("click",function(){STATE.cfg=false;lsSet(LS_CFG,false);render();});
   var sbConnect=document.getElementById("sbConnect");
   if(sbConnect)sbConnect.addEventListener("click",function(){
-    var url=(document.getElementById("sbUrl")||{}).value||"";
-    var key=(document.getElementById("sbKey")||{}).value||"";
-    var userId=(document.getElementById("sbUid")||{}).value||mkUID();
+    // Eingaben säubern: mobiles Einfügen fügt oft Leerzeichen/Zeilenumbrüche an
+    var url=normUrl((document.getElementById("sbUrl")||{}).value||"");
+    var key=((document.getElementById("sbKey")||{}).value||"").replace(/\s+/g,"");
+    var userId=(((document.getElementById("sbUid")||{}).value||"").trim())||mkUID();
     var errEl=document.getElementById("setupErr");
-    if(!url||!key){if(errEl){errEl.style.display="block";errEl.textContent="Bitte URL und API-Key eingeben.";}return;}
+    var showErr=function(msg){if(errEl){errEl.style.display="block";errEl.textContent=msg;}sbConnect.textContent="Verbinden & starten →";sbConnect.disabled=false;};
+    if(!url||!key){showErr("Bitte URL und API-Key eingeben.");return;}
     sbConnect.textContent="Verbinde…";sbConnect.disabled=true;
     initSupabase(function(lib){
       var fn=lib.createClient||(lib.default&&lib.default.createClient);
-      if(!fn){if(errEl){errEl.style.display="block";errEl.textContent="Supabase konnte nicht geladen werden.";}sbConnect.textContent="Verbinden & starten →";sbConnect.disabled=false;return;}
+      if(!fn){showErr("Supabase konnte nicht geladen werden. Prüfe deine Internetverbindung und lade die Seite neu.");return;}
       try{
         var sb=fn(url,key);
         sb.from(TABLE).upsert({user_id:userId,data:{}}).then(function(res){
-          if(res.error){if(errEl){errEl.style.display="block";errEl.textContent="Fehler: "+res.error.message;}sbConnect.textContent="Verbinden & starten →";sbConnect.disabled=false;}
+          if(res.error){showErr(supErr(res.error));}
           else{STATE.cfg={url:url,key:key,userId:userId};lsSet(LS_CFG,STATE.cfg);connectSupabase();render();}
-        }).catch(function(e){if(errEl){errEl.style.display="block";errEl.textContent="Fehler: "+e.message;}sbConnect.textContent="Verbinden & starten →";sbConnect.disabled=false;});
-      }catch(e){if(errEl){errEl.style.display="block";errEl.textContent="Fehler: "+e.message;}sbConnect.textContent="Verbinden & starten →";sbConnect.disabled=false;}
+        }).catch(function(e){showErr(supErr(e));});
+      }catch(e){showErr(supErr(e));}
     });
   });
 }
