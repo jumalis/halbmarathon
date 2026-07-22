@@ -135,7 +135,7 @@ var TESTS={8:3,14:5,20:5,26:5,32:5};    // Testlauf-Wochen → Distanz km
 var DAYN=["Mo","Di","Mi","Do","Fr","Sa","So"];
 
 var PC={1:"#60A5FA",2:"#34D399",3:"#FBBF24",4:"#F87171",5:"#C084FC"};
-var SC={easy:"#60A5FA",long:"#34D399",tempo:"#FBBF24",strength:"#FB923C",recovery:"#C084FC",race:"#FF7A3C",rowing:"#38BDF8",test:"#F472B6"};
+var SC={easy:"#60A5FA",long:"#34D399",tempo:"#FBBF24",strength:"#FB923C",recovery:"#C084FC",race:"#FF7A3C",rowing:"#22D3EE",test:"#F472B6"};
 var SI={easy:"🏃‍♀️",long:"🛤️",tempo:"⚡",strength:"💪",recovery:"🌿",race:"🏅",rowing:"🚣‍♀️",test:"⏱️"};
 var MOODS=["😫","😕","😊","💪","🚀"];
 var ZC=["#94A3B8","#38BDF8","#34D399","#FBBF24","#F87171"]; // Z1–Z5
@@ -710,7 +710,7 @@ function getDerived(){
     var runkm=ses.filter(function(s){return s.type!=="rowing";}).reduce(function(a,s){return a+parseFloat((STATE.data[s.id]&&STATE.data[s.id].km)||0);},0);
     var rowkm=ses.filter(function(s){return s.type==="rowing";}).reduce(function(a,s){return a+parseFloat((STATE.data[s.id]&&STATE.data[s.id].km)||0);},0);
     if(runkm>0)runChart.push({name:"W"+w,km:parseFloat(runkm.toFixed(1)),fill:PC[getPh(w).id]||"#FF7A3C"});
-    if(rowkm>0)rowChart.push({name:"W"+w,km:parseFloat(rowkm.toFixed(1)),fill:"#38BDF8"});
+    if(rowkm>0)rowChart.push({name:"W"+w,km:parseFloat(rowkm.toFixed(1)),fill:"#22D3EE"});
   }
   var logged=all.filter(function(s){return (STATE.data[s.id]&&STATE.data[s.id].done)||(STATE.data[s.id]&&STATE.data[s.id].time);})
     .map(function(s){return Object.assign({},s,{entry:STATE.data[s.id]||{}});}).reverse();
@@ -1381,7 +1381,7 @@ function hMehr(){
   var secs=[
     {icon:"🩺",title:"Beckenboden – Top-Priorität",clr:"#F87171",items:["Physio-Termin vor dem ersten intensiven Training","Jede Laufeinheit mit 10 Min Beckenboden-Aktivierung","Rudern ist beckenbodenschonend – ideal als Ergänzung!","Warnsignal: Druckgefühl oder Urinverlust → Tempo reduzieren"]},
     {icon:"💪",title:"Kettlebell-Technik",clr:"#FB923C",items:["Hip Hinge zuerst meistern: Hüfte nach hinten, Rücken lang","Swings kommen aus der Hüfte – die Arme sind nur Seile","Gewicht steigern, wenn alle Sätze mit sauberer Technik ≤ 6/10 Anstrengung gelingen","Carries: aufrecht bleiben, Schulterblatt tief – bestes Rumpftraining fürs Laufen"]},
-    {icon:"🚣‍♀️",title:"Rudertraining",clr:"#38BDF8",items:["Reihenfolge: Beine → Rumpf → Arme, zurück andersrum","Atemrhythmus: ausatmen beim Zug, einatmen beim Vorgleiten","Schlagzahl locker 18–22, Intervalle 26–30","Der Ø /500m-Split wird beim Eintragen automatisch berechnet"]},
+    {icon:"🚣‍♀️",title:"Rudertraining",clr:"#22D3EE",items:["Reihenfolge: Beine → Rumpf → Arme, zurück andersrum","Atemrhythmus: ausatmen beim Zug, einatmen beim Vorgleiten","Schlagzahl locker 18–22, Intervalle 26–30","Der Ø /500m-Split wird beim Eintragen automatisch berechnet"]},
     {icon:"⚡",title:"Dein Tempogerüst",clr:"#FBBF24",items:["Ziel: 1:45 Std. = 4:58 min/km","Aktuelle Paces stehen direkt in den Einheiten – sie kommen aus deinem letzten Testlauf","Locker heißt: Unterhaltung möglich (Zone 2)","Testläufe alle 6–8 Wochen kalibrieren alles neu"]},
     {icon:"😴",title:"Regeneration ist Training",clr:"#60A5FA",items:["Schlaf ist das stärkste Trainingsmittel – 7–8 Stunden","Nach langen Läufen: Beine hochlegen, proteinreich essen","Muskelkater ≠ Gelenkschmerz – bei Gelenkschmerzen pausieren!","Mindestens 1 kompletter Ruhetag pro Woche"]},
     {icon:"🎵",title:"Playlist-Empfehlungen",clr:"#C084FC",items:["⚡ Tempolauf → 160–180 BPM · Electronic, Hip-Hop, Rock","🏃‍♀️ Lockerlauf → 140–160 BPM · Pop, Indie, Podcast","🛤️ Langer Lauf → Mix · Hörbuch/Podcast für die zweite Hälfte","🚣‍♀️ Rudern → 120–140 BPM · lo-fi, Chillhop","💪 Kraft → 130–150 BPM · motivierender Hip-Hop oder Rock","💡 Spotify-Suche: BPM-Zahl + 'Running'"]},
