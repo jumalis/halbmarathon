@@ -819,7 +819,7 @@ function downloadICS(name,events){
 function calForSession(id){
   var s=allSessions().filter(function(x){return x.id===id;})[0];
   if(!s)return;
-  var start=sesDate(s.week,s.day);start.setHours(18,0,0,0);
+  var start=sesDate(s.week,s.day);start.setHours(8,0,0,0);
   var end=new Date(start.getTime()+(s.min||45)*60000);
   downloadICS("einheit.ics",vevent({start:start,end:end,
     summary:SI[s.type]+" "+s.title,desc:(s.desc||"")+" · Halbmarathon-Training",alarmMin:30}));
