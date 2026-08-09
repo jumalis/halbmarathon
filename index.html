@@ -866,6 +866,36 @@ function sesRemindable(s,w){
   return d.getTime()>=Date.now();
 }
 
+// ── Laufband-Venue (Sportstech sWalk Lite Plus) ──────────────────────────────
+// Entscheidet, ob eine Lauf-Einheit aufs Band passt, und rechnet die Outdoor-
+// Zielpace in eine Band-Einstellung (km/h + Steigung) um. Load/Ziel-RPE bleiben
+// unberührt – die Venue-Wahl ändert nur, WO gelaufen wird.
+var TREADMILL={label:"Sportstech sWalk Lite Plus",maxSpeedKmh:12,inclinePct:1,speedMarginKmh:0.3};
+var TM_RUN_TYPES={easy:1,recovery:1,tempo:1}; // long/test/race bleiben draußen
+function deNum(n){return String(Math.round(n*10)/10).replace(".",",");}
+function parsePaceMin(p){ // "4:58" -> 4.9667 (Min/km)
+  if(p==null)return null;
+  var mm=String(p).trim().split(":"); if(mm.length<2)return null;
+  var m=parseInt(mm[0],10),s=parseInt(mm[1],10);
+  return (isNaN(m)||isNaN(s))?null:m+s/60;
+}
+function paceRangeKmh(p){ // "6:30–7:00" -> {fast,slow} km/h; Einzelpace -> gleich
+  var parts=String(p).split(/[–-]/).map(function(x){return x.trim();});
+  var a=parsePaceMin(parts[0]),b=parts[1]?parsePaceMin(parts[1]):a;
+  if(a==null)return null; if(b==null)b=a;
+  return {fast:60/Math.min(a,b),slow:60/Math.max(a,b)};
+}
+function sesTargetPace(s){var P=paces();return s.type==="tempo"?P.tempo:(s.type==="long"?P.long:P.easy);}
+function treadmillFor(s){ // nur für Lauftypen; {eligible, ...}
+  if(!TM_RUN_TYPES[s.type])return null;
+  var pace=sesTargetPace(s),rng=paceRangeKmh(pace);
+  if(!rng)return null;
+  var cap=TREADMILL.maxSpeedKmh-TREADMILL.speedMarginKmh;
+  if(rng.fast>cap)return {eligible:false,pace:pace,needKmh:rng.fast,capKmh:cap};
+  return {eligible:true,pace:pace,fast:rng.fast,slow:rng.slow,incline:TREADMILL.inclinePct};
+}
+function setVenue(id,v){var e=STATE.data[id]||(STATE.data[id]={});e.venue=v;saveData();}
+
 function sesCard(s,full){
   var e=STATE.data[s.id]||{},done=!!e.done;
   var h='<div class="ses" style="'+(done?"opacity:.72":"")+'">';
@@ -886,6 +916,20 @@ function sesCard(s,full){
     var extra=s.type==="rowing"?splitOf(e):null;
     h+='<div style="font-size:12px;color:'+SC[s.type]+';margin-top:6px;font-weight:600">⏱ '+esc(e.time||"")+(e.km?" · "+esc(e.km)+" km":"")+(extra?" · Ø "+extra:"")+(e.rpe?" · Anstrengung "+e.rpe+"/10":"")+'</div>';
     if(e.notes)h+='<div style="font-size:11.5px;color:var(--dim);font-style:italic;margin-top:2px">„'+esc(e.notes)+'"</div>';
+  }
+  var tm=treadmillFor(s);
+  if(tm&&!done){
+    var v=e.venue||"outdoor";
+    var vb=function(val,label){var on=v===val;return '<button data-venue="'+val+'" data-vid="'+esc(s.id)+'" style="padding:4px 10px;border-radius:8px;font-size:11px;border:1px solid '+(on?"var(--acc)":"var(--line)")+';background:'+(on?"rgba(255,122,60,.12)":"transparent")+';color:'+(on?"var(--acc)":"var(--mut)")+';font-weight:'+(on?700:500)+'">'+label+'</button>';};
+    h+='<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:9px">';
+    h+='<span style="font-size:11px;color:var(--dim)">Wo:</span>'+vb("outdoor","🌳 Draußen")+vb("treadmill","🏃‍♀️ Laufband");
+    h+='</div>';
+    if(v==="treadmill"){
+      if(tm.eligible)
+        h+='<div style="font-size:12px;color:var(--ok);margin-top:6px;line-height:1.5">🏃‍♀️ Band: <b>'+deNum(tm.slow)+'–'+deNum(tm.fast)+' km/h</b> · '+tm.incline+' % Steigung <span style="color:var(--dim)">(≈ '+esc(tm.pace)+'/km draußen)</span></div>';
+      else
+        h+='<div style="font-size:12px;color:var(--warn);margin-top:6px;line-height:1.5">⚠️ Zu schnell fürs Band: Zieltempo <b>'+deNum(tm.needKmh)+' km/h</b> liegt über dem Limit ('+deNum(tm.capKmh)+' km/h). Heute lieber draußen laufen oder mit einer lockeren Einheit tauschen.</div>';
+    }
   }
   h+='</div></div>';
   h+='<div style="display:flex;gap:8px;margin-top:11px">';
@@ -1605,6 +1649,9 @@ function bindEvents(){
   });
   document.querySelectorAll("[data-cal]").forEach(function(b){
     b.addEventListener("click",function(e){e.stopPropagation();calForSession(b.dataset.cal);});
+  });
+  document.querySelectorAll("[data-venue]").forEach(function(b){
+    b.addEventListener("click",function(e){e.stopPropagation();var y=window.scrollY;setVenue(b.dataset.vid,b.dataset.venue);render();window.scrollTo(0,y);});
   });
   document.querySelectorAll("[data-suppcal]").forEach(function(b){
     b.addEventListener("click",function(e){e.stopPropagation();calForSupps();});
